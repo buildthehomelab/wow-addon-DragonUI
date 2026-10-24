@@ -12,7 +12,7 @@ local hooksecurefunc = hooksecurefunc
 local UpdateUIPanelPositions = UpdateUIPanelPositions
 
 -- The stock windows DragonUI has no window of its own for: Quest Log, Dungeon Finder, PvP,
--- Achievements, the Game Menu and the popups. Like social_skin.lua this is a reskin, not a rebuild:
+-- Achievements, Macros, the Game Menu and the popups. Like social_skin.lua this is a reskin, not a rebuild:
 -- each keeps its stock size and every Blizzard anchor, and the bronze window is drawn over the rect
 -- its old art showed.
 local StockPanels = { initialized = false, applied = false }
@@ -216,8 +216,10 @@ local function dressCloseButton(cb, host, window)
     cb:SetFrameLevel((window:GetFrameLevel() or 1) + 20)
 end
 
--- Same strip as the Social window: retail tabs chained off the drawn window's bottom-left.
-local function dressTabs(host, prefix, count)
+-- Same strip as the Social window: retail tabs chained off the drawn window's bottom-left. With
+-- `onTop` ({ anchor, x, y }) they stand nose up on that frame's top-left instead, like the Social
+-- window's Friends / Ignore tabs on their list.
+local function dressTabs(host, prefix, count, onTop)
     local CP = addon.CharacterPanel
     if not (CP and CP.ReskinTab) then return end
     local function relayout()
@@ -227,9 +229,15 @@ local function dressTabs(host, prefix, count)
             if tab then
                 tab._duiRelayout = relayout
                 if tab:IsShown() then
-                    CP.ReskinTab(tab)
+                    CP.ReskinTab(tab, onTop and true)
                     tab:ClearAllPoints()
-                    if prev then
+                    if onTop then
+                        if prev then
+                            tab:SetPoint("BOTTOMLEFT", prev, "BOTTOMRIGHT", TAB_GAP, 0)
+                        else
+                            tab:SetPoint("BOTTOMLEFT", onTop.anchor, "TOPLEFT", onTop.x, onTop.y)
+                        end
+                    elseif prev then
                         tab:SetPoint("TOPLEFT", prev, "TOPRIGHT", TAB_GAP, 0)
                     else
                         tab:SetPoint("TOPLEFT", host, "BOTTOMLEFT", TAB_START_X, TAB_START_Y)
@@ -777,6 +785,29 @@ end
 local POPUP_INSET = 7
 local POPUP_CLOSE_SIZE, POPUP_CLOSE_X = 16, -(POPUP_INSET + 1)
 
+-- Rock ground under the bronze Dialog rail, over the whole of `frame`.
+local function paintDialog(frame)
+    local ground = frame:CreateTexture(nil, "BACKGROUND")
+    ground:SetTexture(ROCK, "REPEAT", "REPEAT")
+    ground:SetHorizTile(true)
+    ground:SetVertTile(true)
+    ground:SetPoint("TOPLEFT", frame, "TOPLEFT", POPUP_INSET, -POPUP_INSET)
+    ground:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", -POPUP_INSET, POPUP_INSET)
+    -- Shaded with the other dialogs by the dark background setting.
+    local CP = addon.CharacterPanel
+    if CP then
+        CP.DialogGrounds = CP.DialogGrounds or {}
+        CP.DialogGrounds[#CP.DialogGrounds + 1] = ground
+        if CP.ApplyBodyBackground then CP.ApplyBodyBackground() end
+    end
+
+    local host = CreateFrame("Frame", nil, frame)
+    host:EnableMouse(false)
+    host:SetAllPoints(frame)
+    applySlicesOn(frame, host, "Dialog")
+    return host
+end
+
 -- StaticPopup_Show sets the close button's art again on every show that has one.
 local function dressPopupClose(popup)
     local cb = _G[popup:GetName() .. "CloseButton"]
@@ -795,24 +826,7 @@ local function buildStaticPopup(index)
     popup._duiStockSkinned = true
 
     if popup.SetBackdrop then popup:SetBackdrop(nil) end
-    local ground = popup:CreateTexture(nil, "BACKGROUND")
-    ground:SetTexture(ROCK, "REPEAT", "REPEAT")
-    ground:SetHorizTile(true)
-    ground:SetVertTile(true)
-    ground:SetPoint("TOPLEFT", popup, "TOPLEFT", POPUP_INSET, -POPUP_INSET)
-    ground:SetPoint("BOTTOMRIGHT", popup, "BOTTOMRIGHT", -POPUP_INSET, POPUP_INSET)
-    -- Shaded with the other dialogs by the dark background setting.
-    local CP = addon.CharacterPanel
-    if CP then
-        CP.DialogGrounds = CP.DialogGrounds or {}
-        CP.DialogGrounds[#CP.DialogGrounds + 1] = ground
-        if CP.ApplyBodyBackground then CP.ApplyBodyBackground() end
-    end
-
-    local host = CreateFrame("Frame", nil, popup)
-    host:EnableMouse(false)
-    host:SetAllPoints(popup)
-    applySlicesOn(popup, host, "Dialog")
+    paintDialog(popup)
 
     if addon.SkinRedButton then
         for i = 1, 3 do
@@ -827,6 +841,171 @@ local function buildStaticPopup(index)
         ForeverUI.SkinEditBox(editBox, { font = _G.ChatFontNormal, height = 20 })
     end
     dressPopupClose(popup)
+end
+
+-- ============================================================================
+-- MACROS (384x512 load-on-demand, the old character window's art: 12 in, 34 / 76 short of the rect)
+-- ============================================================================
+
+local MACRO_RECT = { 12, -12, -34, 76 }
+local MACRO_HIT = { 12, 34, 12, 76 }
+-- The window seat in MacroFrame space: insets' sides and the bottom row keep its gap off the rails.
+local MACRO_LEFT = MACRO_RECT[1] + addon.WindowSeat.buttonLeft
+local MACRO_RIGHT = MACRO_RECT[3] + addon.WindowSeat.buttonRight
+local MACRO_ROW_BOTTOM = MACRO_RECT[4] + addon.WindowSeat.buttonBottom
+local MACRO_PAD = 4 -- content inside the insets
+local MACRO_BAR_W, MACRO_BAR_GAP = 8, 4
+-- Grid: the tabs stand on its inset, nose up. MacroButtonScrollFrame lays rows of 36 + 10 from 6 in,
+-- so 140 holds exactly three (the stock 146 showed 2px of a fourth) with 10 above and below them.
+local MACRO_GRID_TOP, MACRO_GRID_X, MACRO_GRID_H = -78, 23, 140
+local MACRO_GRID_SCROLL_Y = MACRO_GRID_TOP - MACRO_PAD
+local MACRO_GRID_INSET = {
+    MACRO_LEFT, MACRO_GRID_TOP, MACRO_RIGHT, 512 + MACRO_GRID_SCROLL_Y - MACRO_GRID_H - MACRO_PAD,
+}
+-- The selected macro's slot art; its button sits 14 in, under the grid's first column. The name,
+-- Change Name/Icon and the Enter Macro Commands label hang off it.
+local MACRO_SLOT_X, MACRO_SLOT_Y = 15, -222
+-- Text: one inset down to the bottom row. Its label and the character count share the line above.
+local MACRO_TEXT_TOP, MACRO_TEXT_X = -302, MACRO_LEFT + 6
+local MACRO_TEXT_INSET = { MACRO_LEFT, MACRO_TEXT_TOP, MACRO_RIGHT, MACRO_ROW_BOTTOM + 22 + addon.WindowSeat.gap }
+-- The first tab stands 6 in and 2 into the grid inset's trim, like the Social window's list tabs.
+local MACRO_TAB_X, MACRO_TAB_Y = 6, -2
+
+-- The icon picker hangs off the window's right rail instead of 6 over it. Four icon rows end 253
+-- down; the 22 tall buttons sit 8 under them and 20 off the bottom, clear of the Dialog rail.
+local MACRO_POPUP_GAP, MACRO_POPUP_Y, MACRO_POPUP_H = 2, -28, 303
+local MACRO_POPUP_BUTTON_INSET = 20
+-- The bar's column, right of the icon grid; ReskinScrollBar insets its track 7 from each end.
+local MACRO_POPUP_BAR_RIGHT, MACRO_POPUP_BAR_TOP, MACRO_POPUP_BAR_BOTTOM = 24, 85 - 7, 253 + 7
+
+local function buildMacros()
+    local window = _G.MacroFrame
+    if not window or window._duiStockSkinned then return end
+    window._duiStockSkinned = true
+
+    hideArtByFile(window, { "ui%-character%-general", "macroframe%-bot", "ui%-classtrainer%-horizontalbar" })
+    hideNamed({ "MacroFramePortrait", "MacroFrameTextBackground" })
+    local host = skinWindow(window, {
+        rect = MACRO_RECT,
+        hit = MACRO_HIT,
+        title = fontStringByText(window, _G.CREATE_MACROS),
+        close = _G.MacroFrameCloseButton,
+    })
+    local grid = addInset(window, MACRO_GRID_INSET)
+    local text = addInset(window, MACRO_TEXT_INSET)
+    dressTabs(host, "MacroFrameTab", 2, { anchor = grid, x = MACRO_TAB_X, y = MACRO_TAB_Y })
+
+    -- Both scroll bars share one column MACRO_PAD inside the insets' right edge.
+    local barLeft = window:GetWidth() + MACRO_RIGHT - MACRO_PAD - MACRO_BAR_W
+    local gridScroll = _G.MacroButtonScrollFrame
+    if gridScroll then
+        gridScroll:ClearAllPoints()
+        gridScroll:SetPoint("TOPLEFT", window, "TOPLEFT", MACRO_GRID_X, MACRO_GRID_SCROLL_Y)
+        gridScroll:SetHeight(MACRO_GRID_H)
+        dressScrollBar("MacroButtonScrollFrame", barLeft - MACRO_GRID_X - gridScroll:GetWidth())
+    end
+
+    local slot = _G.MacroFrameSelectedMacroBackground
+    if slot then
+        slot:ClearAllPoints()
+        slot:SetPoint("TOPLEFT", window, "TOPLEFT", MACRO_SLOT_X, MACRO_SLOT_Y)
+    end
+
+    -- The edit box fills the inset beside the bar; the stock tooltip box behind it is gone.
+    local textScroll = _G.MacroFrameScrollFrame
+    if textScroll then
+        local width = barLeft - MACRO_BAR_GAP - MACRO_TEXT_X
+        local height = window:GetHeight() + MACRO_TEXT_TOP - MACRO_TEXT_INSET[4] - 2 * MACRO_PAD
+        textScroll:ClearAllPoints()
+        textScroll:SetPoint("TOPLEFT", window, "TOPLEFT", MACRO_TEXT_X, MACRO_TEXT_TOP - MACRO_PAD)
+        textScroll:SetSize(width, height)
+        for _, name in ipairs({ "MacroFrameText", "MacroFrameTextButton" }) do
+            local object = _G[name]
+            if object then object:SetSize(width, height) end
+        end
+        dressScrollBar("MacroFrameScrollFrame", MACRO_BAR_GAP)
+    end
+    local label, count = _G.MacroFrameEnterMacroText, _G.MacroFrameCharLimitText
+    if label then
+        label:ClearAllPoints()
+        label:SetPoint("BOTTOMLEFT", text, "TOPLEFT", MACRO_PAD, MACRO_PAD)
+    end
+    if count then
+        count:ClearAllPoints()
+        count:SetPoint("BOTTOMRIGHT", text, "TOPRIGHT", -MACRO_PAD, MACRO_PAD)
+    end
+
+    -- Stock, the row sat on the bottom rail.
+    local seat = addon.WindowSeat
+    local delete, new, exit = _G.MacroDeleteButton, _G.MacroNewButton, _G.MacroExitButton
+    if delete then
+        delete:ClearAllPoints()
+        delete:SetPoint("BOTTOMLEFT", host, "BOTTOMLEFT", seat.buttonLeft, seat.buttonBottom)
+    end
+    if exit then
+        exit:ClearAllPoints()
+        exit:SetPoint("BOTTOMRIGHT", host, "BOTTOMRIGHT", seat.buttonRight, seat.buttonBottom)
+        if new then
+            new:ClearAllPoints()
+            new:SetPoint("RIGHT", exit, "LEFT", -1, 0)
+        end
+    end
+    if addon.SkinRedButton then
+        for _, button in ipairs({ delete, new, exit, _G.MacroEditButton }) do
+            addon.SkinRedButton(button)
+        end
+    end
+end
+
+local function buildMacroPopup()
+    local popup = _G.MacroPopupFrame
+    if not popup or popup._duiStockSkinned then return end
+    popup._duiStockSkinned = true
+
+    hideArtByFile(popup, { "macropopup%-" })
+    hideNamed({ "MacroPopupNameLeft", "MacroPopupNameMiddle", "MacroPopupNameRight" })
+    -- Its two labels are BACKGROUND, where the rock would tie with them.
+    for _, region in ipairs({ popup:GetRegions() }) do
+        if region:GetObjectType() == "FontString" then region:SetDrawLayer("ARTWORK") end
+    end
+    popup:SetHeight(MACRO_POPUP_H)
+    paintDialog(popup)
+
+    local chrome = _G.MacroFrame and _G.MacroFrame._duiChrome
+    if chrome then
+        popup:ClearAllPoints()
+        popup:SetPoint("TOPLEFT", chrome, "TOPRIGHT", MACRO_POPUP_GAP, MACRO_POPUP_Y)
+    end
+
+    local editBox = _G.MacroPopupEditBox
+    local ForeverUI = addon.ForeverUI
+    if editBox and ForeverUI and ForeverUI.SkinEditBox then
+        ForeverUI.SkinEditBox(editBox, { font = _G.ChatFontNormal, height = 20 })
+    end
+
+    local cancel = _G.MacroPopupCancelButton
+    if cancel then
+        cancel:ClearAllPoints()
+        cancel:SetPoint("BOTTOMRIGHT", popup, "BOTTOMRIGHT", -MACRO_POPUP_BUTTON_INSET, MACRO_POPUP_BUTTON_INSET)
+    end
+    if addon.SkinRedButton then
+        addon.SkinRedButton(_G.MacroPopupOkayButton)
+        addon.SkinRedButton(cancel)
+    end
+
+    -- The scroll frame's own regions are the carved trainer groove.
+    local scroll, CP = _G.MacroPopupScrollFrame, addon.CharacterPanel
+    if scroll and CP and CP.ReskinScrollBar then
+        for _, region in ipairs({ scroll:GetRegions() }) do
+            if region:GetObjectType() == "Texture" then neuterTexture(region) end
+        end
+        local column = CreateFrame("Frame", nil, popup)
+        -- Without a width it has no rect at all, and the bar anchored to it gets none either.
+        column:SetWidth(1)
+        column:SetPoint("TOPRIGHT", popup, "TOPRIGHT", -MACRO_POPUP_BAR_RIGHT, -MACRO_POPUP_BAR_TOP)
+        column:SetPoint("BOTTOMRIGHT", popup, "TOPRIGHT", -MACRO_POPUP_BAR_RIGHT, -MACRO_POPUP_BAR_BOTTOM)
+        CP.ReskinScrollBar(scroll, column, 0, 0, 0, true)
+    end
 end
 
 local popupShowHooked = false
@@ -850,6 +1029,8 @@ local BUILDERS = {
     { frame = "PVPParentFrame", build = buildPvP },
     { frame = "AchievementFrame", build = buildAchievements, atLoad = true },
     { frame = "GameMenuFrame", build = buildGameMenu },
+    { frame = "MacroFrame", build = buildMacros },
+    { frame = "MacroPopupFrame", build = buildMacroPopup },
 }
 for i = 1, _G.STATICPOPUP_NUMDIALOGS or 4 do
     BUILDERS[#BUILDERS + 1] = { frame = "StaticPopup" .. i, build = function() buildStaticPopup(i) end, atLoad = true }
@@ -902,7 +1083,8 @@ function addon.RefreshStockPanelsSystem()
     end
 end
 
--- The Achievement window is load-on-demand: hooked when Blizzard_AchievementUI loads.
+-- The Achievement and Macro windows are load-on-demand: hooked when their addon loads.
+local LOAD_ON_DEMAND = { Blizzard_AchievementUI = true, Blizzard_MacroUI = true }
 local boot = CreateFrame("Frame")
 boot:RegisterEvent("PLAYER_LOGIN")
 boot:RegisterEvent("ADDON_LOADED")
@@ -910,8 +1092,7 @@ boot:SetScript("OnEvent", function(self, event, name)
     if event == "PLAYER_LOGIN" then
         self:UnregisterEvent("PLAYER_LOGIN")
         addon.ApplyStockPanelsSystem()
-    elseif name == "Blizzard_AchievementUI" then
-        self:UnregisterEvent("ADDON_LOADED")
+    elseif LOAD_ON_DEMAND[name] then
         if StockPanels.initialized then addon.ApplyStockPanelsSystem() end
     end
 end)

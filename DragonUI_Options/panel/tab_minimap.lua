@@ -283,6 +283,15 @@ local function BuildMinimapTab(scroll)
         dbPath = "minimap.ping_sender",
     })
 
+    C:AddToggle(basic, {
+        label = LO["Show Movement Speed"],
+        desc = LO["Show your current movement speed below the minimap. Move it in editor mode."],
+        dbPath = "minimap.movement_speed",
+        callback = function()
+            if addon.RefreshMovementSpeed then addon.RefreshMovementSpeed() end
+        end,
+    })
+
     C:AddSlider(basic, {
         label = LO["Player Arrow Size"],
         dbPath = "minimap.player_arrow_size",

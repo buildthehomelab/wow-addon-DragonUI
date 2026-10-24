@@ -2,7 +2,7 @@
 
 -- ============================================================================
 -- DragonUI - Key Bindings search
--- A search box in the Key Bindings window's bottom bar that filters the list
+-- A search box filling the Key Bindings window's bottom bar that filters the list
 -- by command name or bound key. Blizzard's list only scrolls; the bar under
 -- it is a status line that most people take for a search box, so it becomes one.
 -- ============================================================================
@@ -129,56 +129,81 @@ local function Deselect()
     Update()
 end
 
+local TEXT_LEFT, TEXT_RIGHT = 24, 8
+local focused = false
+
+-- "Search" shows only in an idle, empty bar: not while typing, and not while
+-- the status line has something to say.
+local function RefreshHint()
+    if not hint then return end
+    local status = KeyBindingFrameOutputText:GetText() or ""
+    if not focused and (searchBox:GetText() or "") == "" and status == "" then hint:Show() else hint:Hide() end
+end
+
+-- Typed text ends where the status line begins.
+local function ReserveStatus()
+    local status = KeyBindingFrameOutputText:GetText() or ""
+    local right = TEXT_RIGHT
+    if status ~= "" then right = right + KeyBindingFrameOutputText:GetStringWidth() + 12 end
+    searchBox:SetTextInsets(TEXT_LEFT, right, 0, 0)
+    RefreshHint()
+end
+
 local function Install()
     if searchBox or not KeyBindingFrame or not KeyBindingFrame_Update then return end
     stockUpdate = KeyBindingFrame_Update
     KeyBindingFrame_Update = Update
 
-    -- Named because InputBoxTemplate builds its border out of $parent-prefixed regions.
+    -- The box is the dark bar under the list: it covers the bar from the Reset
+    -- button's left edge to the Cancel button's right, and the template's own
+    -- rim (its $parent-named Left/Middle/Right regions) is hidden so the bar's
+    -- art is the only border.
     searchBox = CreateFrame("EditBox", "DragonUIKeyBindingSearchBox", KeyBindingFrame, "InputBoxTemplate")
-    searchBox:SetSize(200, 20)
-    searchBox:SetPoint("BOTTOMLEFT", KeyBindingFrame, "BOTTOMLEFT", 24, 42)
+    searchBox:SetPoint("BOTTOMLEFT", KeyBindingFrame, "BOTTOMLEFT", 12, 48)
+    searchBox:SetPoint("TOPRIGHT", KeyBindingFrame, "BOTTOMRIGHT", -50, 64)
+    for _, part in ipairs({ "Left", "Middle", "Right" }) do
+        local rim = _G["DragonUIKeyBindingSearchBox" .. part]
+        if rim then rim:Hide() end
+    end
     searchBox:SetAutoFocus(false)
-    searchBox:SetTextInsets(18, 6, 0, 0)
+    searchBox:SetTextInsets(TEXT_LEFT, TEXT_RIGHT, 0, 0)
     searchBox:SetFrameLevel(KeyBindingFrame:GetFrameLevel() + 2)
 
     local glass = searchBox:CreateTexture(nil, "OVERLAY")
     glass:SetSize(14, 14)
-    glass:SetPoint("LEFT", searchBox, "LEFT", 2, -1.5)
+    glass:SetPoint("LEFT", searchBox, "LEFT", 6, -1)
     glass:SetTexture(addon._dir .. "Collections\\UI-Searchbox-Icon")
 
     hint = searchBox:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
-    hint:SetPoint("LEFT", searchBox, "LEFT", 20, 0)
+    hint:SetPoint("LEFT", searchBox, "LEFT", TEXT_LEFT, 0)
     hint:SetText(SEARCH)
 
     searchBox:SetScript("OnTextChanged", function(self)
-        local text = self:GetText() or ""
-        if text == "" then hint:Show() else hint:Hide() end
-        local lowered = Lower(text)
+        RefreshHint()
+        local lowered = Lower(self:GetText())
         if lowered == query then return end
         query = lowered
         ScrollToTop()
         Update()
     end)
-    searchBox:SetScript("OnEditFocusGained", function() hint:Hide(); Deselect() end)
-    searchBox:SetScript("OnEditFocusLost", function(self)
-        if (self:GetText() or "") == "" then hint:Show() end
-    end)
+    searchBox:SetScript("OnEditFocusGained", function() focused = true; Deselect(); RefreshHint() end)
+    searchBox:SetScript("OnEditFocusLost", function() focused = false; RefreshHint() end)
     searchBox:SetScript("OnEscapePressed", function(self) self:SetText(""); self:ClearFocus() end)
     searchBox:SetScript("OnEnterPressed", function(self) self:ClearFocus() end)
 
-    -- The status line shares the bar: it moves out from under the box and
-    -- centres in what is left, so bind prompts and errors still show.
+    -- The status line shares the bar, right-aligned inside it, so bind prompts
+    -- and errors still show; typed text stops short of it.
     KeyBindingFrameOutputText:ClearAllPoints()
-    KeyBindingFrameOutputText:SetPoint("LEFT", searchBox, "RIGHT", 12, 0)
-    KeyBindingFrameOutputText:SetPoint("RIGHT", KeyBindingFrame, "RIGHT", -30, 0)
-    KeyBindingFrameOutputText:SetJustifyH("CENTER")
+    KeyBindingFrameOutputText:SetPoint("RIGHT", searchBox, "RIGHT", -8, 0)
+    KeyBindingFrameOutputText:SetJustifyH("RIGHT")
+    hooksecurefunc(KeyBindingFrameOutputText, "SetText", ReserveStatus)
 
     -- Every opening starts with the whole list, as Blizzard's does.
     KeyBindingFrame:HookScript("OnHide", function()
         query = ""
         searchBox:SetText("")
         searchBox:ClearFocus()
+        RefreshHint()
     end)
 end
 

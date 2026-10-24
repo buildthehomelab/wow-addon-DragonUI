@@ -265,7 +265,8 @@ local function dressScrollBar(scrollName, x)
     local CP = addon.CharacterPanel
     if not (scroll and CP and CP.ReskinScrollBar) or scroll._duiStockBar then return end
     scroll._duiStockBar = true
-    hideArtByFile(scroll, { "ui%-character%-scrollbar" })
+    hideArtByFile(scroll, { "ui%-character%-scrollbar", "ui%-classtrainer%-scrollbar" })
+    neuterTexture(scroll.scrollBarBackground)
     scroll.hideThumbWhenUnscrollable = true
     CP.ReskinScrollBar(scroll, scroll, 0, 0, 0, true)
     local bar = _G[scrollName .. "ScrollBar"]
@@ -526,15 +527,122 @@ local PVP_HIT = { 14, 32, 13, 75 }
 -- Group Join / Join / Cancel ran 136 + 109 + 2 + 83 = 330, past the 322 between the seats.
 local PVP_GROUP_JOIN_W = 128
 
+-- Both pages keep the seat's gap off the rails; offsets are from PVPParentFrame's corners.
+local PVP_LEFT = PVP_RECT[1] + addon.WindowSeat.buttonLeft
+local PVP_RIGHT = PVP_RECT[3] + addon.WindowSeat.buttonRight
+local PVP_BOTTOM = PVP_RECT[4] + addon.WindowSeat.buttonBottom
+local PVP_PAD = 4
+local PVP_BUTTON_H = 22
+
+-- PvP page: the Honor and Arena rows stay on the stone where Blizzard put them (-48 and -141), the
+-- honor stats (-66..-121) and the three team slots (-168..-421) each get an inset. The slots' poles
+-- hung 2 left of the inset, so the slots move 2 right.
+local PVP_HONOR_TOP, PVP_HONOR_BOTTOM = -61, -127
+local PVP_ARENA_TOP = -154
+local PVP_TEAM_X, PVP_TEAM_Y = 15, { 85, 0, -85 }
+
+-- Battlegrounds page: the Battleground header and the Wintergrasp timer share one row above the
+-- five 16-tall list rows, then the info pane takes the rest down to the button row.
+local BG_HEADER_Y = -54 -- centre of the header row
+local BG_HEADER_X = 72
+local BG_INSET_TOP = -37 -- the band's bottom plus the seat's gap
+local BG_LIST_TOP, BG_LIST_BOTTOM = -72, -160
+local BG_INFO_TOP = -163
+local BG_ROW_W = 295
+local BG_BAR_W = 8
+-- The win and loss rows were 319 wide and ran past the 298 scroll pane onto its bar.
+local BG_REWARD_W = 297
+
+-- The insets belong to one page each: drawn on PVPFrame or PVPBattlegroundFrame, anchored to the
+-- parent's corners (the Battlegrounds page sits 2,-1 off them).
+local function addPageInset(page, window, left, top, right, bottom, parchment)
+    return addInset(page, {
+        left, top, right, bottom, topLeft = window, bottomRight = window,
+    }, parchment)
+end
+
+local function buildPvPPage(window)
+    local page = _G.PVPFrame
+    if not page then return end
+    local height = window:GetHeight()
+    addPageInset(page, window, PVP_LEFT, PVP_HONOR_TOP, PVP_RIGHT, height + PVP_HONOR_BOTTOM)
+    addPageInset(page, window, PVP_LEFT, PVP_ARENA_TOP, PVP_RIGHT, PVP_BOTTOM)
+
+    local background = _G.PVPFrameBackground
+    for i, y in ipairs(PVP_TEAM_Y) do
+        local standard = _G["PVPTeam" .. i .. "Standard"]
+        if standard and background then
+            standard:ClearAllPoints()
+            standard:SetPoint("LEFT", background, "LEFT", PVP_TEAM_X, y)
+        end
+    end
+    local toggle = _G.PVPFrameToggleButton
+    if toggle then
+        toggle:ClearAllPoints()
+        toggle:SetPoint("BOTTOMRIGHT", window, "BOTTOMRIGHT", PVP_RIGHT - PVP_PAD, PVP_BOTTOM + PVP_PAD)
+    end
+end
+
+local function buildBattlegroundPage(window)
+    local page = _G.PVPBattlegroundFrame
+    if not page then return end
+    local width = window:GetWidth()
+    local infoBottom = PVP_BOTTOM + PVP_BUTTON_H + addon.WindowSeat.gap
+    addPageInset(page, window, PVP_LEFT, BG_INSET_TOP, PVP_RIGHT, window:GetHeight() + BG_LIST_BOTTOM)
+    -- Parchment: the map text is written in the dark ink of the stock paper pane. The map painting
+    -- under it (PvpRandomBg and the others) has its own metal frame baked in, so it goes.
+    addPageInset(page, window, PVP_LEFT, BG_INFO_TOP, PVP_RIGHT, infoBottom, true)
+    hideNamed({ "PVPBattlegroundFrameBGTex" })
+
+    -- Same layer as the insets' ground on this frame, which would win the tie.
+    local header = _G.PVPBattlegroundFrameNameHeader
+    if header then
+        header:ClearAllPoints()
+        header:SetPoint("LEFT", window, "TOPLEFT", BG_HEADER_X, BG_HEADER_Y)
+        header:SetDrawLayer("OVERLAY")
+    end
+    local timer = _G.WintergraspTimer
+    if timer then
+        timer:ClearAllPoints()
+        timer:SetPoint("RIGHT", window, "TOPLEFT", width + PVP_RIGHT - PVP_PAD, BG_HEADER_Y)
+    end
+
+    local rowLeft = PVP_LEFT + PVP_PAD
+    local first = _G.BattlegroundType1
+    if first then
+        first:ClearAllPoints()
+        first:SetPoint("TOPLEFT", window, "TOPLEFT", rowLeft, BG_LIST_TOP)
+    end
+    -- Both bars end PVP_PAD inside the inset; the list's faux frame ends with its rows.
+    local barLeft = width + PVP_RIGHT - PVP_PAD - BG_BAR_W
+    dressScrollBar("PVPBattlegroundFrameTypeScrollFrame", barLeft - (rowLeft + BG_ROW_W))
+
+    local info = _G.PVPBattlegroundFrameInfoScrollFrame
+    if info then
+        info:ClearAllPoints()
+        info:SetPoint("TOPLEFT", window, "TOPLEFT", rowLeft, BG_INFO_TOP - PVP_PAD)
+        info:SetPoint("BOTTOMRIGHT", window, "BOTTOMRIGHT",
+            PVP_RIGHT - PVP_PAD - 2 * BG_BAR_W, infoBottom + PVP_PAD)
+        dressScrollBar("PVPBattlegroundFrameInfoScrollFrame", BG_BAR_W)
+    end
+    local rewards = _G.PVPBattlegroundFrameInfoScrollFrameChildFrameRewardsInfo
+    if rewards then
+        for _, row in ipairs({ rewards.winReward, rewards.lossReward }) do
+            row:SetWidth(BG_REWARD_W)
+        end
+    end
+end
+
 local function buildPvP()
     local window = _G.PVPParentFrame
     if not window or window._duiStockSkinned then return end
     window._duiStockSkinned = true
 
-    -- The honor and arena panels (PVPFrameBackground, PvpRandomBg) are content, not chrome; they stay.
+    -- PVPFrameBackground (the honor and arena painting) ran under every rail and had the portrait's
+    -- shadow in its top-left corner; the insets below replace it.
     hideArtByFile(_G.PVPFrame, { "ui%-character%-general" })
     hideArtByFile(_G.PVPBattlegroundFrame, { "ui%-battlefield%-top", "ui%-queuefromanywhere%-bot" })
-    hideNamed({ "PVPFramePortrait", "PVPBattlegroundFramePortrait" })
+    hideNamed({ "PVPFramePortrait", "PVPBattlegroundFramePortrait", "PVPFrameBackground" })
 
     local host = skinWindow(window, {
         rect = PVP_RECT,
@@ -553,8 +661,8 @@ local function buildPvP()
     dressTitle(host, _G.PVPBattlegroundFrameFrameLabel)
     dressTabs(host, "PVPParentFrameTab", 2)
 
-    -- Stock, the queue row hung 2 past the right rail and the team toggle sat on the bottom one; both
-    -- take the seat (the rest of the row hangs off Cancel).
+    -- Stock, the queue row hung 2 past the right rail; it takes the seat (the rest of the row hangs
+    -- off Cancel). The team toggle moves into the arena inset.
     local seat = addon.WindowSeat
     local cancel, groupJoin = _G.PVPBattlegroundFrameCancelButton, _G.PVPBattlegroundFrameGroupJoinButton
     if cancel then
@@ -562,11 +670,8 @@ local function buildPvP()
         cancel:SetPoint("BOTTOMRIGHT", host, "BOTTOMRIGHT", seat.buttonRight, seat.buttonBottom)
     end
     if groupJoin then groupJoin:SetWidth(PVP_GROUP_JOIN_W) end
-    local toggle = _G.PVPFrameToggleButton
-    if toggle then
-        toggle:ClearAllPoints()
-        toggle:SetPoint("BOTTOMRIGHT", host, "BOTTOMRIGHT", seat.buttonRight, seat.buttonBottom)
-    end
+    buildPvPPage(window)
+    buildBattlegroundPage(window)
 end
 
 -- ============================================================================

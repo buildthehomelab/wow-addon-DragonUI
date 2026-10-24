@@ -11,7 +11,7 @@ local InCombatLockdown = InCombatLockdown
 local hooksecurefunc = hooksecurefunc
 local UpdateUIPanelPositions = UpdateUIPanelPositions
 
--- The stock windows DragonUI has no window of its own for: Quest Log, Dungeon Finder, PvP,
+-- The stock windows DragonUI has no window of its own for: Quest Log, Dungeon Finder, PvP, Options,
 -- Achievements, Macros, the Game Menu and the popups. Like social_skin.lua this is a reskin, not a rebuild:
 -- each keeps its stock size and every Blizzard anchor, and the bronze window is drawn over the rect
 -- its old art showed.
@@ -587,6 +587,87 @@ local function buildGameMenu()
 end
 
 -- ============================================================================
+-- OPTIONS (Interface, Video, Sound & Voice: 648x520 dialog boxes; the bronze window takes the rect)
+-- ============================================================================
+
+-- The category list hangs 22,-40 with the settings pane 16 right of it; both keep their stock rects
+-- and get an inset each in place of their tooltip borders. Interface's Game / AddOns tabs stood 24
+-- tall on the list; the retail art stands up to 42 (selected), so that window grows by the
+-- difference and its lists drop by it, keeping the tabs under the title band.
+local OPTIONS_TAB_ROOM = 22
+local OPTIONS_TAB_X, OPTIONS_TAB_Y = 6, -2
+-- The list's 24 gutter (the rows narrow by it while the bar shows) holds the minimal bar.
+local OPTIONS_LIST_BAR_X = -4
+
+local function dressOptionsList(list)
+    hideArtByFile(list, { "ui%-tooltip%-border", "ui%-optionsframe%-spacer" })
+    local scroll = _G[list:GetName() .. "List"]
+    if not scroll then return end
+    if scroll.SetBackdrop then scroll:SetBackdrop(nil) end
+    local CP = addon.CharacterPanel
+    if CP and CP.ReskinScrollBar then
+        CP.ReskinScrollBar(scroll, list, 0, OPTIONS_LIST_BAR_X, 0, true)
+    end
+end
+
+local function buildOptions(name)
+    local window = _G[name]
+    if not window or window._duiStockSkinned then return end
+    window._duiStockSkinned = true
+
+    if window.SetBackdrop then window:SetBackdrop(nil) end
+    neuterTexture(_G[name .. "Header"])
+    local host = paintChrome(window, { 0, 0, 0, 0 })
+    dressTitle(host, _G[name .. "HeaderText"])
+
+    -- Interface's two lists share one rect and swap with its tabs; Video and Sound have the one.
+    local first = _G[name .. "Categories"] or _G[name .. "CategoryFrame"]
+    local lists = { first, _G[name .. "AddOns"] }
+    local hasTabs = _G[name .. "Tab1"] ~= nil
+    if hasTabs then
+        window:SetHeight(window:GetHeight() + OPTIONS_TAB_ROOM)
+        for _, list in ipairs(lists) do
+            local point, relativeTo, relativePoint, x, y = list:GetPoint(1)
+            list:SetPoint(point, relativeTo, relativePoint, x, y - OPTIONS_TAB_ROOM)
+        end
+    end
+    for _, list in ipairs(lists) do
+        dressOptionsList(list)
+    end
+    if first then
+        addInset(window, { 0, 0, 0, 0, topLeft = first, bottomRight = first })
+    end
+    local pane = _G[name .. "PanelContainer"]
+    if pane then
+        if pane.SetBackdrop then pane:SetBackdrop(nil) end
+        addInset(window, { 0, 0, 0, 0, topLeft = pane, bottomRight = pane })
+    end
+    if hasTabs and first then
+        -- Blizzard shows one spacer set or the other on each tab click.
+        hideNamed({ name .. "Tab1TabSpacer", name .. "Tab2TabSpacer1", name .. "Tab2TabSpacer2" })
+        dressTabs(host, name .. "Tab", 2, { anchor = first, x = OPTIONS_TAB_X, y = OPTIONS_TAB_Y })
+    end
+
+    -- Stock the row sat 16 in, inside the dialog border; it takes the seat. Okay (and Cancel beside
+    -- Video's Apply) chain off the rightmost.
+    local seat = addon.WindowSeat
+    local rightmost, defaults = _G[name .. "Apply"] or _G[name .. "Cancel"], _G[name .. "Defaults"]
+    if rightmost then
+        rightmost:ClearAllPoints()
+        rightmost:SetPoint("BOTTOMRIGHT", host, "BOTTOMRIGHT", seat.buttonRight, seat.buttonBottom)
+    end
+    if defaults then
+        defaults:ClearAllPoints()
+        defaults:SetPoint("BOTTOMLEFT", host, "BOTTOMLEFT", seat.buttonLeft, seat.buttonBottom)
+    end
+    if addon.SkinRedButton then
+        for _, suffix in ipairs({ "Okay", "Cancel", "Apply", "Defaults" }) do
+            addon.SkinRedButton(_G[name .. suffix])
+        end
+    end
+end
+
+-- ============================================================================
 -- ACHIEVEMENTS (768x500 load-on-demand; wood border, metal rails and a header hung above the top)
 -- ============================================================================
 
@@ -1032,6 +1113,9 @@ local BUILDERS = {
     { frame = "MacroFrame", build = buildMacros },
     { frame = "MacroPopupFrame", build = buildMacroPopup },
 }
+for _, name in ipairs({ "InterfaceOptionsFrame", "VideoOptionsFrame", "AudioOptionsFrame" }) do
+    BUILDERS[#BUILDERS + 1] = { frame = name, build = function() buildOptions(name) end }
+end
 for i = 1, _G.STATICPOPUP_NUMDIALOGS or 4 do
     BUILDERS[#BUILDERS + 1] = { frame = "StaticPopup" .. i, build = function() buildStaticPopup(i) end, atLoad = true }
 end

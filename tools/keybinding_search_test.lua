@@ -23,18 +23,23 @@ local function widget()
     function w:ClearAllPoints() wipe(self.points) end
     function w:SetSize() end
     function w:SetAutoFocus() end
-    function w:SetTextInsets() end
+    function w:SetTextInsets(l, r) self.insets = { l, r } end
+    function w:GetStringWidth() return #(self.text or '') * 6 end
     function w:SetFrameLevel() end
     function w:GetFrameLevel() return 1 end
     function w:SetJustifyH(j) self.justify = j end
     function w:SetTexture(t) self.texture = t end
     function w:ClearFocus() self.focused = false end
     function w:CreateTexture() return widget() end
-    function w:CreateFontString() return widget() end
+    function w:CreateFontString() self.fontString = widget(); return self.fontString end
     function w:SetValue(v) self.value = v end
     function w:Enable() self.enabled = true end
     function w:Disable() self.enabled = false end
     return w
+end
+function hooksecurefunc(obj, name, fn)
+    local orig = obj[name]
+    obj[name] = function(...) local r = orig(...); fn(...); return r end
 end
 local created = {}
 function CreateFrame(kind, name)
@@ -88,7 +93,16 @@ local addon = { _dir = 'Interface\\AddOns\\DragonUI\\Textures\\' }
 assert(loadfile('DragonUI/modules/keybinding_search.lua'))('DragonUI', addon)
 local box = DragonUIKeyBindingSearchBox
 assert(box, 'Search box not created when the binding UI is already loaded')
-assert(KeyBindingFrameOutputText.points[1][2] == box, 'Status text not moved beside the box')
+assert(KeyBindingFrameOutputText.points[1][2] == box, 'Status text not moved into the box')
+assert(#box.points == 2, 'Box should span the bar with two anchors')
+
+-- A status message keeps typed text short of it and hides the hint; clearing it restores both.
+local hintText = box.fontString
+KeyBindingFrameOutputText:SetText('Press a key')
+assert(box.insets[2] == 8 + 11 * 6 + 12, 'Right inset should reserve the status width, got ' .. tostring(box.insets[2]))
+assert(hintText.shown == false, 'Hint should hide while the status line shows')
+KeyBindingFrameOutputText:SetText('')
+assert(box.insets[2] == 8 and hintText.shown == true, 'Empty status should give the text back its room')
 
 local function rowNames()
     local out = {}

@@ -72,21 +72,38 @@ function WM.OnTerrainFloor()
     return level <= 0
 end
 
+-- The map on screen, floor and all, so a call that moves it can put it back. World and Cosmic have
+-- no area id, only a continent number.
+function WM.SaveMapView()
+    local area = (GetCurrentMapAreaID() or 0) - 1
+    local level = GetCurrentMapDungeonLevel()
+    local continent = GetCurrentMapContinent()
+    return function()
+        if area > 0 then
+            SetMapByID(area)
+            if level and level > 0 then SetDungeonMapLevel(level) end
+        else
+            SetMapZoom(continent)
+        end
+    end
+end
+
 -- WorldMap_OpenToQuest writes WorldMapFrame.blockWorldMapUpdate, re-read by its every WORLD_MAP_UPDATE.
 function WM.OpenToQuest(questID)
     local shown = WorldMapFrame:IsShown()
     -- Only showing the map is protected; an open one moves freely in combat.
     if not questID or (InCombatLockdown() and not shown) then return false end
+    -- Shown first: WorldMapFrame_OnShow calls SetMapToCurrentZone, which would undo the move below.
+    if not shown then ShowUIPanel(WorldMapFrame) end
     -- Not a getter: it moves the map whatever it answers, so a quest it cannot place must not strand you.
-    local before = (GetCurrentMapAreaID() or 0) - 1
+    local restore = WM.SaveMapView()
     local area, floor = GetQuestWorldMapAreaID(questID)
     if area and area > 0 then
         SetMapByID(area)
         if floor and floor > 0 then SetDungeonMapLevel(floor) end
-    elseif before > 0 then
-        SetMapByID(before)
+    else
+        restore()
     end
-    if not shown then ShowUIPanel(WorldMapFrame) end
     return true
 end
 

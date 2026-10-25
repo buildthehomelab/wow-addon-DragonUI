@@ -174,10 +174,26 @@ local function withHeadersOpen(work)
 end
 
 local resolving
+-- The log's quest count when every quest in it was last resolved; collapsed headers hide quests
+-- from the walk, so an unchanged count is what says there is nothing new under them.
+local settledCount
+
+-- Opening the headers fires QUEST_LOG_UPDATE, so a pass with nothing to learn must not open them.
+local function nothingPending()
+    if next(questPending) then return false end
+    local entries, quests = GetNumQuestLogEntries()
+    if quests ~= settledCount then return false end
+    for index = 1, entries do
+        local _, _, _, _, isHeader, _, _, _, questID = GetQuestLogTitle(index)
+        if not isHeader and questID and questID > 0 and questArea[questID] == nil then return false end
+    end
+    return true
+end
 
 local function resolvePending()
     -- Expanding a header fires QUEST_LOG_UPDATE, which lands right back here.
     if resolving or WorldMapFrame:IsShown() or InCombatLockdown() then return end
+    if nothingPending() then return end
     resolving = true
     local moved = false
     withHeadersOpen(function()
@@ -191,6 +207,7 @@ local function resolvePending()
         end
     end)
     resolving = nil
+    settledCount = select(2, GetNumQuestLogEntries())
     if moved then SetMapToCurrentZone() end
 end
 
@@ -209,6 +226,8 @@ local function forgetFailures(reset)
     for questID, where in pairs(questArea) do
         if not where then questArea[questID] = nil end
     end
+    -- What was forgotten sits under collapsed headers too.
+    settledCount = nil
 end
 
 -- nil is momentary and falls through; false is settled and does not.
@@ -342,7 +361,11 @@ local function collect()
                 flat[#flat + 1] = pending
                 pending = nil
             end
-            local complete = isComplete == 1 or (badge and badge.completed) or false
+            -- WorldMapFrame_UpdateQuests' rule, which the tracker follows: nothing to do is done.
+            local complete = isComplete == 1 or (badge and badge.completed)
+                or (not (isComplete and isComplete < 0) and GetNumQuestLeaderBoards(index) == 0
+                    and GetMoney() >= GetQuestLogRequiredMoney(index))
+                or false
             local objectives = details and objectiveText(index) or ""
             -- Nothing left to do, objectiveless quests included: Blizzard lists the hand-in instead.
             if details and not (isComplete and isComplete < 0) and (complete or objectives == "") then
@@ -408,12 +431,19 @@ end
 -- in one place because three callers used to draw straight onto the canvas and undo each other.
 local drawn = {}
 
+-- Asked of the map's own rows, not ours: the panel can be closed while a pin is picked.
 local function blobFor(questID)
     if not questID then return end
-    for index = 1, #rowPool do
-        local row = rowPool[index]
-        if row:IsShown() and row._questID == questID then
-            if row._mapRow and not row._complete then return questID end
+    for index = 1, WorldMapFrame.numQuests or 0 do
+        local row = _G["WorldMapQuestFrame" .. index]
+        if row and row.questId == questID then
+            if not row.completed then return questID end
+            return
+        end
+    end
+    for _, row in ipairs(WM.HeldQuestRows()) do
+        if row.questId == questID then
+            if not row.completed then return questID end
             return
         end
     end
@@ -468,7 +498,7 @@ local function travelTo(row)
         return
     end
     -- The call moves the map whatever it answers, so a quest it cannot place must not strand you.
-    local before = (GetCurrentMapAreaID() or 0) - 1
+    local restore = WM.SaveMapView()
     local area, floor = GetQuestWorldMapAreaID(questID)
     if area and area > 0 then
         questArea[questID] = area
@@ -481,7 +511,7 @@ local function travelTo(row)
         return
     end
     questArea[questID] = false
-    if before > 0 then SetMapByID(before) else SetMapToCurrentZone() end
+    restore()
 end
 
 -- A collapsed header hides its quests from UpdateQuests' sweep, so their shapes never get cleared.
@@ -1045,6 +1075,7 @@ function WM.BuildQuestLog()
     panel:SetScript("OnHide", function()
         hoverRow(nil, false)
         QP.SetFocus(nil)
+        applyBlob()
         addon:After(0, resolvePending)
     end)
     WM.SetQuestLogShown(WM.PanelShown())

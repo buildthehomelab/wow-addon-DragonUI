@@ -41,6 +41,17 @@ local function floorLabel(index)
     return _G["DUNGEON_FLOOR_" .. mapName .. floor] or string.format(FLOOR_NUMBER, index)
 end
 
+-- No 3.3.5 call names an instance map, so the player's own is remembered while it is on screen
+-- and the zone text vouches for that one only.
+local ownArea
+local function instanceMapName()
+    if not GetMapInfo() then return end
+    local area = GetCurrentMapAreaID()
+    local x, y = GetPlayerMapPosition("player")
+    if x ~= 0 or y ~= 0 then ownArea = area end
+    if area == ownArea then return GetRealZoneText() end
+end
+
 -- The name of the map on screen, for the breadcrumb and the quest log's zone header.
 function WM.CurrentMapName()
     local continent, zone = GetCurrentMapContinent(), GetCurrentMapZone()
@@ -48,10 +59,8 @@ function WM.CurrentMapName()
         return zoneNames(continent)[zone]
     elseif continent > 0 then
         return continentNames()[continent]
-    elseif GetNumDungeonMapLevels() > 0 or IsInInstance() then
-        return GetRealZoneText()
     end
-    return WORLD_MAP
+    return instanceMapName() or WORLD_MAP
 end
 
 local function continentList()
@@ -93,8 +102,9 @@ local function trail()
             crumbs[#crumbs + 1] = { name = zoneName .. WM.ZoneLevelSuffix(GetMapInfo()),
                 onClick = function() SetMapZoom(continent, zone) end }
         end
-    elseif GetNumDungeonMapLevels() > 0 or IsInInstance() then
-        crumbs[#crumbs + 1] = { name = GetRealZoneText() }
+    else
+        local name = instanceMapName()
+        if name then crumbs[#crumbs + 1] = { name = name } end
     end
     if GetNumDungeonMapLevels() > 1 then
         crumbs[#crumbs + 1] = { name = floorLabel(GetCurrentMapDungeonLevel()), list = floorList }

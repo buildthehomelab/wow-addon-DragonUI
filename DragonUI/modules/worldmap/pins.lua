@@ -65,7 +65,7 @@ end
 
 -- Offsets are read in the button's own space, so the badge scale has to come back out of them.
 local function placeQuestPOI(button)
-    if button.duiRawX and WM.poiScale then
+    if button.duiRawX and WM.poiScale and WM.IsWindowed() then
         local scale = button.type == QUEST_POI_NUMERIC and QUEST_POI_NUMERIC_SCALE or QUEST_POI_SCALE
         button:SetScale(scale)
         -- The template insets 8 of 32 a side, leaving the ring we draw mostly unclickable.
@@ -79,6 +79,12 @@ end
 local function onQuestPOIDisplayed(questFrame)
     local button = questFrame.poiIcon
     if not button then return end
+    -- Blizzard's fullscreen map places its pins at its own scale; ours would push them out.
+    if not WM.IsWindowed() then
+        button.duiRawX, button.duiRawY = nil, nil
+        button:SetScale(1)
+        return
+    end
     local _, posX = QuestPOIGetIconInfo(questFrame.questId)
     if posX then
         local _, _, _, x, y = button:GetPoint(1)
@@ -232,6 +238,11 @@ local function wouldLeaveHole()
     for index = 1, lastNew - 1 do
         if not (heldRows[index].completed or _G[SWAP_PIN .. index]) then return true end
     end
+    -- HideButtons then hides every completed pin past the completed count, its own included.
+    local completed = count - open
+    for index = completed + 1, count do
+        if heldRows[index].completed then return true end
+    end
     return false
 end
 
@@ -345,6 +356,8 @@ function WM.HeldQuestRows()
 end
 
 function WM.SelectQuestPOI(questID)
+    -- Fullscreen, Blizzard's pick is the one its details pane shows; it keeps its own art.
+    if not WM.IsWindowed() then return end
     for index = 1, WorldMapFrame.numQuests or 0 do
         local row = _G["WorldMapQuestFrame" .. index]
         if row and row.poiIcon then cropQuestPOI(row.poiIcon, row.questId == questID) end
@@ -553,6 +566,7 @@ function WM.BuildPins()
     hooksecurefunc("WorldMapFrame_Update", tryFlashQuestPOI)
     -- Blizzard reselects a pin of its own on every rebuild, so ours is re-cropped after it.
     hooksecurefunc("WorldMapFrame_SelectQuestFrame", function()
+        if not WM.IsWindowed() then return end
         -- Blizzard's pick is not ours: undo the twin it swaps in, as its numbered crop is undone below.
         local swap = QUEST_POI_SWAP_BUTTONS and QUEST_POI_SWAP_BUTTONS.WorldMapPOIFrame
         if swap and swap:IsShown() then

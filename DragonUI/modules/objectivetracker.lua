@@ -370,6 +370,7 @@ end
 local function ownsPick()
     local worldMap = addon.WorldMap
     return worldMap and worldMap.IsApplied and worldMap.IsApplied()
+        and not (WorldMapFrame:IsShown() and not worldMap.IsWindowed())
 end
 
 local function cropBorrowed(button)

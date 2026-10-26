@@ -589,6 +589,7 @@ local function boot()
     if WM.BuildPins then WM.BuildPins() end
     if WM.BuildQuestLog then WM.BuildQuestLog() end
     if WM.BuildFog then WM.BuildFog() end
+    if WM.BuildQuestGivers then WM.BuildQuestGivers() end
     if WM.BuildMapPins then WM.BuildMapPins() end
     if WM.BuildCoords then WM.BuildCoords() end
     if WM.BuildPlayerArrow then WM.BuildPlayerArrow() end

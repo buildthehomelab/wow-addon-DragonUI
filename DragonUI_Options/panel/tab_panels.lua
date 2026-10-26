@@ -423,6 +423,30 @@ local function BuildWorldMapSubTab(scroll)
     })
 
     C:AddToggle(mapSection, {
+        label = LO["Show Quest Givers"],
+        desc = LO["Show quest giver pins on zone maps for quests you can take now. Needs the server's mod-quest-map."],
+        getFunc = function() return GetModuleField("worldmap", "questGivers") ~= false end,
+        setFunc = function(val)
+            EnsureModuleTable("worldmap").questGivers = val
+            if addon.RefreshWorldMapSystem then addon.RefreshWorldMapSystem() end
+        end,
+        disabled = function() return not IsEnabled("worldmap") end,
+        requiresReload = false,
+    })
+
+    C:AddToggle(mapSection, {
+        label = LO["Show Trivial Quests"],
+        desc = LO["Also show quest givers whose quests are far below your level."],
+        getFunc = function() return GetModuleField("worldmap", "trivialQuests") == true end,
+        setFunc = function(val)
+            EnsureModuleTable("worldmap").trivialQuests = val
+            if addon.RefreshWorldMapSystem then addon.RefreshWorldMapSystem() end
+        end,
+        disabled = function() return not IsEnabled("worldmap") or GetModuleField("worldmap", "questGivers") == false end,
+        requiresReload = false,
+    })
+
+    C:AddToggle(mapSection, {
         label = LO["Show Landmarks"],
         desc = LO["Show towns, flight points and other landmark pins on the map."],
         getFunc = function() return GetModuleField("worldmap", "landmarks") ~= false end,

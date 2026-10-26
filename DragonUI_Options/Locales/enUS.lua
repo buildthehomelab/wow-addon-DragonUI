@@ -1657,6 +1657,10 @@ L["Show Flight Points"] = true
 L["Show flight master pins on zone maps."] = true
 L["Show Inns"] = true
 L["Show innkeeper pins on zone maps, marking the inn your hearthstone is set to."] = true
+L["Show Quest Givers"] = true
+L["Show quest giver pins on zone maps for quests you can take now. Needs the server's mod-quest-map."] = true
+L["Show Trivial Quests"] = true
+L["Also show quest givers whose quests are far below your level."] = true
 
 -- ============================================================================
 -- LOW HP ALERT MODULE (added by DragonUI)

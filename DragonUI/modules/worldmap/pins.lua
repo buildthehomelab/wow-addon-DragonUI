@@ -491,6 +491,8 @@ local function filterEntries()
     toggle(L["Show Graveyards"], "graveyards", WM.RefreshMapPins)
     toggle(L["Show Flight Points"], "flightPoints", WM.RefreshMapPins)
     toggle(L["Show Inns"], "inns", WM.RefreshMapPins)
+    toggle(L["Show Quest Givers"], "questGivers", WM.RefreshMapPins)
+    toggle(L["Show Trivial Quests"], "trivialQuests", WM.RefreshMapPins)
     toggle(L["Show Zone Levels"], "zoneLevels", refreshZoneLevels)
     toggle(L["Show Map Coordinates"], "coordinates", WM.RefreshCoords)
     return entries

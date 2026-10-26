@@ -1596,8 +1596,9 @@ do
         f.amtGold = f:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
         f.amtGold:SetPoint("RIGHT", f.iconGold, "LEFT", -2, 0)
 
+        -- Right anchor only, like the coins: a fixed width would truncate gold cap
         local txt = f:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
-        txt:SetAllPoints(f)
+        txt:SetPoint("RIGHT", f, "RIGHT", 0, 0)
         txt:SetJustifyH("RIGHT")
         txt:SetJustifyV("MIDDLE")
         txt:Hide()
@@ -1634,7 +1635,8 @@ do
         f.btnText = CreateFrame("Button", nil, f)
         f.btnText.moneyType = "PLAYER"
         f.btnText.multiplier = COPPER_PER_GOLD
-        f.btnText:SetAllPoints(f)
+        f.btnText:SetPoint("TOPLEFT", txt, "TOPLEFT", -2, 2)
+        f.btnText:SetPoint("BOTTOMRIGHT", txt, "BOTTOMRIGHT", 2, -2)
         f.btnText:SetScript("OnClick", OnCoinClick)
         f.btnText:Hide()
 

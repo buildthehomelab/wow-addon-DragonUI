@@ -47,7 +47,7 @@ local HD_MAPS = {
 
 -- FlightMap_FlightPointPinMixin's art and pin sizes; 3.3.5a's DISTANT is retail's unreachable nub.
 local NODE_STYLES = {
-    -- Retail's 28 is on a ~1000px canvas; on our 330 map it buried close neighbours (Dalaran).
+    -- Retail's 28 is on a ~1000px canvas; on our 480 map it would crowd close neighbours (Dalaran).
     CURRENT = { atlas = "Taxi_Frame_Green", glow = "Taxi_Frame_Gray", size = 24, layer = 2 },
     REACHABLE = { atlas = "Taxi_Frame_Gray", glow = "Taxi_Frame_Gray", hover = "Taxi_Frame_Yellow", size = 20, layer = 3 },
     DISTANT = { atlas = "UI-Taxi-Icon-Nub", glow = "UI-Taxi-Icon-Nub", size = 14, layer = 1 },
@@ -59,9 +59,10 @@ local GLOW_ALPHA = 0.25
 local ROUTE_ALPHA = 0.85
 
 -- The maps are square art (retail draws them 580x580). The map is the inset, which keeps the window
--- seat's gap inside the bronze rails (nineslice.lua); 322 keeps the window at the PR's 338 width.
+-- seat's gap inside the bronze rails (nineslice.lua). 480 gives clustered pins room (322 packed them
+-- together) and still keeps the window clear of the bottom of the screen.
 local SEAT = addon.WindowSeat
-local MAP_SIZE = 322
+local MAP_SIZE = 480
 local INSET_LEFT, INSET_TOP, INSET_RIGHT, INSET_BOTTOM = SEAT.buttonLeft, -60, SEAT.buttonRight, SEAT.buttonBottom
 local WIDTH, HEIGHT = INSET_LEFT + MAP_SIZE - INSET_RIGHT, MAP_SIZE - INSET_TOP + INSET_BOTTOM
 local PANEL_X_NUDGE = 6

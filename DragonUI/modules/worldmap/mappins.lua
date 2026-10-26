@@ -10,6 +10,9 @@ local ENTRANCE_SIZE = 28
 local FLIGHT_SIZE = 18
 local GRAVEYARD_W, GRAVEYARD_H = 12, 16
 local INN_SIZE, HOME_SIZE = 18, 24
+local QUEST_SIZE = 18
+local QUEST_ICON = "Interface\\GossipFrame\\AvailableQuestIcon"
+local DAILY_ICON = "Interface\\GossipFrame\\DailyQuestIcon"
 local HEARTHSTONE = "|TInterface\\Icons\\INV_Misc_Rune_01:14:14|t "
 -- inndata.lua ships each inn as a positional record to stay small; these name its slots.
 local INN_X, INN_Y, INN_SIDE, INN_NPC, INN_AREA = 1, 2, 3, 4, 5
@@ -66,6 +69,11 @@ local function acquire(index)
         GameTooltip:SetText(self.name, 1, 1, 1)
         if self.kind then GameTooltip:AddLine(self.kind, 0.8, 0.8, 0.8) end
         if self.note then GameTooltip:AddLine(self.note, 0.1, 1, 0.1) end
+        for _, quest in ipairs(self.quests or EMPTY) do
+            local color = GetQuestDifficultyColor(quest.level)
+            local icon = quest.repeatable and DAILY_ICON or QUEST_ICON
+            GameTooltip:AddLine(format("|T%s:14:14|t [%d] %s", icon, quest.level, quest.title), color.r, color.g, color.b)
+        end
         GameTooltip:Show()
     end)
     pin:SetScript("OnLeave", function() GameTooltip:Hide() end)
@@ -93,6 +101,20 @@ local function styleFlightPoint(pin, entry)
     pin.name, pin.kind = FLIGHT_NAMES[entry.name] or entry.name, L["Flight Master"]
     pin.icon:SetAtlasTexture(TAXI_ATLAS[entry.faction] or "map-taxinode-neutral")
     pin:SetSize(FLIGHT_SIZE, FLIGHT_SIZE)
+end
+
+-- Blue when every quest it lists is a daily or repeatable, grey when every one is far below you.
+local function styleQuestGiver(pin, giver)
+    pin.name, pin.kind, pin.quests = giver.name, nil, giver.shown
+    local repeatable, trivial = true, true
+    for _, quest in ipairs(giver.shown) do
+        repeatable = repeatable and quest.repeatable
+        trivial = trivial and quest.trivial
+    end
+    pin.icon:SetTexture(repeatable and DAILY_ICON or QUEST_ICON)
+    pin.icon:SetTexCoord(0, 1, 0, 1)
+    pin.icon:SetDesaturated(trivial)
+    pin:SetSize(QUEST_SIZE, QUEST_SIZE)
 end
 
 local function areaName(id)
@@ -312,6 +334,17 @@ function WM.RefreshMapPins()
         if config.graveyards ~= false then
             for _, point in ipairs(WM.Graveyards[mapFile] or EMPTY) do add(point[1], point[2], GRAVEYARD_H, styleGraveyard) end
         end
+        -- The server places givers on the zone's terrain map; a floor has coordinates of its own.
+        local area = (GetCurrentMapAreaID() or 0) - 1
+        if config.questGivers ~= false and area > 0 and WM.OnTerrainFloor() then
+            local trivial = config.trivialQuests == true
+            for _, giver in ipairs(WM.QuestGivers(area) or EMPTY) do
+                local shown = trivial and giver.quests or giver.normal
+                if #shown > 0 then
+                    add(giver.x, giver.y, QUEST_SIZE, styleQuestGiver, { name = giver.name, shown = shown })
+                end
+            end
+        end
         spread(items, width, height)
 
         -- Placed last to first so entrances, added first, draw on top of what they overlap.
@@ -321,7 +354,8 @@ function WM.RefreshMapPins()
             count = count + 1
             local pin = acquire(count)
             local previous = pin.name
-            pin.note = nil
+            pin.note, pin.quests = nil, nil
+            pin.icon:SetDesaturated(false)
             item.style(pin, item.entry)
             if pin.name ~= previous then stopFlash(pin) end
             pin:SetScale(pinScale)

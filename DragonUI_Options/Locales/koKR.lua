@@ -1658,6 +1658,10 @@ L["Show Flight Points"] = "비행 지점 표시"
 L["Show flight master pins on zone maps."] = "지역 지도에 비행 조련사를 표시합니다."
 L["Show Inns"] = "여관 표시"
 L["Show innkeeper pins on zone maps, marking the inn your hearthstone is set to."] = "지역 지도에 여관주인을 표시하고 귀환석이 설정된 여관을 강조합니다."
+L["Show Quest Givers"] = "퀘스트 제공자 표시"
+L["Show quest giver pins on zone maps for quests you can take now. Needs the server's mod-quest-map."] = "지금 받을 수 있는 퀘스트의 제공자를 지역 지도에 표시합니다. 서버에 mod-quest-map이 필요합니다."
+L["Show Trivial Quests"] = "낮은 레벨 퀘스트 표시"
+L["Also show quest givers whose quests are far below your level."] = "레벨보다 훨씬 낮은 퀘스트의 제공자도 표시합니다."
 
 -- ============================================================================
 -- LOW HP ALERT MODULE (added by DragonUI)

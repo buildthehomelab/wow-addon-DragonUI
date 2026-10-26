@@ -1696,6 +1696,27 @@ do
             self.iconCopper:Show(); self.amtCopper:Show(); self.btnCopper:Show()
             self.amtCopper:SetText(copper)
         end
+
+        -- The coins grow leftward past the frame's own width, so the bottom band re-seats around them
+        local parent = self:GetParent()
+        if parent.LayoutBottomBand then
+            parent:LayoutBottomBand()
+        end
+    end
+
+    -- Drawn width of the coins, measured from the right edge
+    function MoneyFrame:GetContentWidth()
+        if self.textFull:IsShown() then
+            return self.textFull:GetStringWidth()
+        end
+        local w = 15 + 2 + self.amtCopper:GetStringWidth()
+        if self.amtSilver:IsShown() then
+            w = w + 4 + 15 + 2 + self.amtSilver:GetStringWidth()
+        end
+        if self.amtGold:IsShown() then
+            w = w + 4 + 15 + 2 + self.amtGold:GetStringWidth()
+        end
+        return w
     end
 
     function MoneyFrame:RefreshDisplay()
@@ -1833,6 +1854,24 @@ do
             self._tokenCount = 0
             self:Hide()
         end
+
+        local parent = self:GetParent()
+        if parent.LayoutBottomBand then
+            parent:LayoutBottomBand()
+        end
+    end
+
+    -- Drawn width of the tokens, measured from the left edge
+    function TokenBar:GetContentWidth()
+        if not self:IsShown() then return 0 end
+        local w, n = 0, 0
+        for _, btn in ipairs(self.tokenButtons) do
+            if btn:IsShown() then
+                w = w + btn:GetWidth()
+                n = n + 1
+            end
+        end
+        return w + TOKEN_GAP * math.max(n - 1, 0)
     end
 
     function TokenBar:_CreateTokenButton(index)

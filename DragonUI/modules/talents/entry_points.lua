@@ -10,14 +10,29 @@ local TOGGLE_NAME = "DragonUI_TalentToggle"
 
 -- Opening and closing -----------------------------------------------------------------------------
 
-local function levelAllows(level)
-    if UnitLevel("player") >= level then return true end
+local function levelAllows(level, unlocked)
+    if unlocked or UnitLevel("player") >= level then return true end
     ns.Notify(format(FEATURE_BECOMES_AVAILABLE_AT_LEVEL, level), "gate")
     return false
 end
 
 local function talentLevel()
     return SHOW_TALENT_LEVEL or 10
+end
+
+-- Servers that grant points before SHOW_TALENT_LEVEL (ours: one per level from 1) unlock the window early.
+local function hasTalentPoints()
+    local group = GetActiveTalentGroup(false, false)
+    if (GetUnspentTalentPoints(false, false, group) or 0) > 0 then return true end
+    for tab = 1, GetNumTalentTabs(false, false) do
+        local _, _, spent = GetTalentTabInfo(tab, false, false, group)
+        if (spent or 0) > 0 then return true end
+    end
+    return false
+end
+
+local function talentsAllowed()
+    return levelAllows(talentLevel(), hasTalentPoints())
 end
 
 local function glyphLevel()
@@ -39,7 +54,7 @@ local function showOrRepaint()
 end
 
 function ns.OpenTalents()
-    if not TM.applied or not levelAllows(talentLevel()) then return end
+    if not TM.applied or not talentsAllowed() then return end
     local wasInspecting = ns.inspectUnit ~= nil
     ns.LeaveInspect()
     if not ns.win:IsShown() then
@@ -57,7 +72,7 @@ function ns.ToggleTalents()
         win:Hide()
         return
     end
-    if not levelAllows(talentLevel()) then return end
+    if not talentsAllowed() then return end
     ns.LeaveInspect()
     freshView()
     showOrRepaint()
@@ -187,8 +202,13 @@ local function installEntryPoints()
         TalentMicroButton:SetScript("OnClick", function() ns.ToggleTalents() end)
     end
     hooksecurefunc("UpdateMicroButtons", function()
-        if ns.win and ns.win:IsShown() and TalentMicroButton then
+        if not TalentMicroButton then return end
+        if ns.win and ns.win:IsShown() then
             TalentMicroButton:SetButtonState("PUSHED", 1)
+        elseif not TalentMicroButton:IsEnabled() and hasTalentPoints() then
+            -- Stock code disables it below TalentMicroButton.minLevel (SHOW_TALENT_LEVEL).
+            TalentMicroButton:Enable()
+            TalentMicroButton:SetButtonState("NORMAL")
         end
     end)
 

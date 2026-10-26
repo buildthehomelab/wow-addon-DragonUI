@@ -417,7 +417,6 @@ do
         -- quality buttons sit 1 higher than the money and token text, as before.
         local rowBottom = addon.WindowSeat.buttonBottom
         f.qualityFilter = mod.QualityFilter:New(f)
-        f.qualityFilter:SetPoint("BOTTOM", 0, rowBottom + 1)
 
         f.itemFrame = mod.ItemFrame:New(f)
         f.itemFrame:SetPoint("TOPLEFT", ITEM_FRAME_LEFT_INSET, -65)
@@ -755,6 +754,7 @@ do
         local w, h = self:GetWidth(), self:GetHeight()
         self.sets.w = w
         self.sets.h = h
+        self:LayoutBottomBand()
         -- One-frame debounce while dragging the resize corner
         if not self._resizeDriver then
             self._resizeDriver = CreateFrame("Frame", nil, self)
@@ -788,6 +788,38 @@ do
         else
             self.qualityFilter:Hide()
         end
+        self:LayoutBottomBand()
+    end
+
+    -- Centered when it fits; otherwise centered in the gap between the tokens and the money,
+    -- since a large gold amount reaches well past the window's middle. The window's minimum
+    -- width grows with the band, so gold cap plus every watched token still never collides.
+    local BAND_INSET, BAND_GAP = 14, 8
+    function InventoryFrame:LayoutBottomBand()
+        local qf = self.qualityFilter
+        if not (qf and self.moneyFrame) then return end
+        local tokensW = self.tokenBar and self.tokenBar:GetContentWidth() or 0
+        local moneyW = self.moneyFrame:GetContentWidth()
+        local needed = BAND_INSET * 2 + tokensW + BAND_GAP + moneyW
+        if qf:IsShown() then
+            needed = needed + qf:GetWidth() + BAND_GAP
+        end
+        local minWidth = math.max(BASE_WIDTH, math.ceil(needed))
+        self:SetMinResize(minWidth, MIN_HEIGHT)
+        if self:GetWidth() < minWidth then
+            self:SetWidth(minWidth)
+        end
+        if not qf:IsShown() then return end
+
+        local width, qw = self:GetWidth(), qf:GetWidth()
+        local left = BAND_INSET + tokensW + BAND_GAP
+        local right = width - BAND_INSET - moneyW - BAND_GAP
+        local x = (width - qw) / 2
+        if x < left or x + qw > right then
+            x = (left + right - qw) / 2
+        end
+        qf:ClearAllPoints()
+        qf:SetPoint("BOTTOMLEFT", self, "BOTTOMLEFT", x, addon.WindowSeat.buttonBottom + 1)
     end
 
     function InventoryFrame:UpdateClampInsets()

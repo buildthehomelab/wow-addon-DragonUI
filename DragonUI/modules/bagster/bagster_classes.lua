@@ -1596,8 +1596,9 @@ do
         f.amtGold = f:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
         f.amtGold:SetPoint("RIGHT", f.iconGold, "LEFT", -2, 0)
 
+        -- Right anchor only, like the coins: a fixed width would truncate gold cap
         local txt = f:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
-        txt:SetAllPoints(f)
+        txt:SetPoint("RIGHT", f, "RIGHT", 0, 0)
         txt:SetJustifyH("RIGHT")
         txt:SetJustifyV("MIDDLE")
         txt:Hide()
@@ -1634,7 +1635,8 @@ do
         f.btnText = CreateFrame("Button", nil, f)
         f.btnText.moneyType = "PLAYER"
         f.btnText.multiplier = COPPER_PER_GOLD
-        f.btnText:SetAllPoints(f)
+        f.btnText:SetPoint("TOPLEFT", txt, "TOPLEFT", -2, 2)
+        f.btnText:SetPoint("BOTTOMRIGHT", txt, "BOTTOMRIGHT", 2, -2)
         f.btnText:SetScript("OnClick", OnCoinClick)
         f.btnText:Hide()
 
@@ -1696,6 +1698,27 @@ do
             self.iconCopper:Show(); self.amtCopper:Show(); self.btnCopper:Show()
             self.amtCopper:SetText(copper)
         end
+
+        -- The coins grow leftward past the frame's own width, so the bottom band re-seats around them
+        local parent = self:GetParent()
+        if parent.LayoutBottomBand then
+            parent:LayoutBottomBand()
+        end
+    end
+
+    -- Drawn width of the coins, measured from the right edge
+    function MoneyFrame:GetContentWidth()
+        if self.textFull:IsShown() then
+            return self.textFull:GetStringWidth()
+        end
+        local w = 15 + 2 + self.amtCopper:GetStringWidth()
+        if self.amtSilver:IsShown() then
+            w = w + 4 + 15 + 2 + self.amtSilver:GetStringWidth()
+        end
+        if self.amtGold:IsShown() then
+            w = w + 4 + 15 + 2 + self.amtGold:GetStringWidth()
+        end
+        return w
     end
 
     function MoneyFrame:RefreshDisplay()
@@ -1833,6 +1856,24 @@ do
             self._tokenCount = 0
             self:Hide()
         end
+
+        local parent = self:GetParent()
+        if parent.LayoutBottomBand then
+            parent:LayoutBottomBand()
+        end
+    end
+
+    -- Drawn width of the tokens, measured from the left edge
+    function TokenBar:GetContentWidth()
+        if not self:IsShown() then return 0 end
+        local w, n = 0, 0
+        for _, btn in ipairs(self.tokenButtons) do
+            if btn:IsShown() then
+                w = w + btn:GetWidth()
+                n = n + 1
+            end
+        end
+        return w + TOKEN_GAP * math.max(n - 1, 0)
     end
 
     function TokenBar:_CreateTokenButton(index)

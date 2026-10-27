@@ -52,7 +52,8 @@ local function RingDrop()
     if style == "dragonui_square" or style == "forever_square" then return SQUARE_DROP end
     local mapBottom, ringBottom = Minimap:GetBottom(), circle:GetBottom()
     if not (mapBottom and ringBottom) then return BARE_GAP end
-    local drop = mapBottom * Minimap:GetEffectiveScale() - ringBottom * circle:GetEffectiveScale()
+    -- The ring is a texture: it has no scale of its own and draws in its parent frame's.
+    local drop = mapBottom * Minimap:GetEffectiveScale() - ringBottom * circle:GetParent():GetEffectiveScale()
     return max(0, drop / UIParent:GetEffectiveScale()) + GAP
 end
 

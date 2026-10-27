@@ -39,7 +39,11 @@ UIParent = newRegion()
 MinimapCluster = newRegion(UIParent)
 Minimap = newRegion(MinimapCluster)
 function Minimap:GetBottom() return 500 end
-Minimap.Circle = newRegion(Minimap)
+MinimapBackdrop = newRegion(MinimapCluster)
+-- A texture, as in the client: no GetEffectiveScale of its own.
+Minimap.Circle = newRegion(MinimapBackdrop)
+Minimap.Circle.GetEffectiveScale = nil
+function Minimap.Circle:GetParent() return self.parent end
 function Minimap.Circle:GetBottom() return 494 end
 DurabilityFrame = newRegion(UIParent)
 DurabilityFrame.shown = false

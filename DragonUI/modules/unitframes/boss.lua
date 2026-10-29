@@ -152,39 +152,17 @@ local function UpdateBossFrameBorder(bossFrame)
         "TOPLEFT", bossFrame.DragonUI_FrameBG, "TOPLEFT", 0, 0)
 end
 
--- Re-apply custom flash styling on our mirror texture (on BorderFrame)
-local function EnforceFlashStyle(flashTex, parentFrame)
-    if not flashTex then return end
-    -- Hide the Blizzard flash — we use our own mirror
-    flashTex:SetAlpha(0)
-
-    local bossFrame = parentFrame
-
-    -- Create mirror flash on bossFrame itself (once).
-    -- bossFrame is level N, borderFrame is level N+2, so the flash
-    -- naturally renders BELOW the border — correct "glow behind border" look.
-    if not bossFrame.DragonUI_Flash then
-        local mirror = bossFrame:CreateTexture(nil, "OVERLAY")
-        mirror:SetDrawLayer("OVERLAY", 7)
-        bossFrame.DragonUI_Flash = mirror
-        -- Sync: when Blizzard shows/hides the original flash, mirror it
-        hooksecurefunc(flashTex, "Show", function() mirror:Show() end)
-        hooksecurefunc(flashTex, "Hide", function() mirror:Hide() end)
-        mirror:Hide()
-    end
-
-    local mirror = bossFrame.DragonUI_Flash
-    mirror:SetTexture(TEXTURES.THREAT)
-    mirror:SetTexCoord(0, 376/512, 0, 134/256)
-    mirror:SetVertexColor(1, 0, 0, 1)
-    mirror:SetBlendMode("ADD")
-    mirror:SetAlpha(0.7)
-    mirror:SetDrawLayer("OVERLAY", 7)
-    mirror:ClearAllPoints()
-    mirror:SetPoint("BOTTOMLEFT", bossFrame, "BOTTOMLEFT", 3, 25)
-    mirror:SetSize(188, 67)
-    -- Match current visibility
-    if flashTex:IsShown() then mirror:Show() else mirror:Hide() end
+-- Blizzard's own threat flash, placed like target_style's; colour and Show/Hide stay with UnitFrame_UpdateThreatIndicator.
+local function EnforceFlashStyle(flashTex, bossFrame)
+    if not flashTex or not bossFrame.DragonUI_DecoFrame then return end
+    -- On the elite dragon's frame like target and focus (retail): over the border, under the dragon.
+    flashTex:SetParent(bossFrame.DragonUI_DecoFrame)
+    flashTex:SetDrawLayer("BACKGROUND")
+    flashTex:SetTexture(TEXTURES.THREAT)
+    flashTex:SetTexCoord(0, 376/512, 0, 134/256)
+    flashTex:ClearAllPoints()
+    flashTex:SetPoint("BOTTOMLEFT", bossFrame, "BOTTOMLEFT", 1, 24)
+    flashTex:SetSize(188, 67)
 end
 
 -- ============================================================================
@@ -523,19 +501,8 @@ local function ReskinBossFrame(wrapperFrame, bossFrame, bossIndex)
         end
     end
 
-    -- Flash texture (threat / combat glow)
-    -- Same pattern as target.lua: custom THREAT texture with proper sizing.
-    local flashTex = _G[frameName .. "Flash"]
-    if flashTex then
-        EnforceFlashStyle(flashTex, bossFrame)
-    end
-
-    -- Threat indicator
-    if bossFrame.threatIndicator then
-        bossFrame.threatIndicator:ClearAllPoints()
-        bossFrame.threatIndicator:SetPoint("BOTTOMLEFT", 0, 0)
-        bossFrame.threatIndicator:SetAtlasTexture("TargetFrame-Status", true)
-    end
+    -- Threat flash (bossFrame.threatIndicator is this same texture)
+    EnforceFlashStyle(_G[frameName .. "Flash"], bossFrame)
 
     -- Apply classification-based atlas border
     UpdateBossFrameBorder(bossFrame)
@@ -596,7 +563,61 @@ local function ReskinBossFrame(wrapperFrame, bossFrame, bossIndex)
     end
 
     bossFrame.HideTest = function(self)
-        self:Hide()
+        local unit = self.unit
+        if not (unit and UnitExists(unit)) then
+            self:Hide()
+            return
+        end
+
+        -- ShowTest painted the player over a real boss; repaint it the way TargetFrame_Update would.
+        local fn = self:GetName()
+        local p = _G[fn .. "Portrait"]
+        if p then SetPortraitTexture(p, unit) end
+
+        local bg = _G[fn .. "NameBackground"]
+        if bg then bg:SetVertexColor(UnitSelectionColor(unit)) end
+
+        local name = _G[fn .. "TextureFrameName"]
+        if name then name:SetText(GetUnitName(unit)) end
+
+        local level = _G[fn .. "TextureFrameLevelText"]
+        local highLevel = _G[fn .. "TextureFrameHighLevelTexture"]
+        local unitLevel = UnitLevel(unit)
+        local known = unitLevel > 0 and not UnitIsCorpse(unit)
+        if level then
+            if known then
+                level:SetText(unitLevel)
+                level:Show()
+            else
+                level:Hide()
+            end
+        end
+        if highLevel then
+            if known then highLevel:Hide() else highLevel:Show() end
+        end
+
+        local dead = _G[fn .. "TextureFrameDeadText"]
+        if dead then
+            if UnitHealth(unit) <= 0 and UnitIsConnected(unit) then dead:Show() else dead:Hide() end
+        end
+
+        local hp = _G[fn .. "HealthBar"]
+        if hp then
+            hp:SetMinMaxValues(0, UnitHealthMax(unit))
+            hp:SetValue(UnitHealth(unit))
+        end
+
+        local mp = _G[fn .. "ManaBar"]
+        if mp then
+            local powerType, powerToken = UnitPowerType(unit)
+            local maxPower = UnitPowerMax(unit, powerType)
+            mp:SetMinMaxValues(0, maxPower)
+            mp:SetValue(UnitPower(unit, powerType))
+            local color = PowerBarColor[powerToken] or PowerBarColor[powerType]
+            if color then mp:SetStatusBarColor(color.r, color.g, color.b) end
+        end
+
+        for _, texts in pairs(BossModule.textSystems) do texts.update() end
     end
 end
 
@@ -911,6 +932,37 @@ end
 -- INITIALIZATION
 -- ============================================================================
 
+BossModule.textSystems = {}
+
+local function UpdateBossTexts()
+    for _, texts in pairs(BossModule.textSystems) do
+        texts.update()
+    end
+end
+
+-- Our own strings over the bars; Blizzard's TextString is only faded, never written to or force-shown.
+local function SetupBossTexts(bossFrame, bossIndex)
+    local system = addon.TextSystem
+    if not system or BossModule.textSystems[bossIndex] then return end
+    local fn = bossFrame:GetName()
+    local healthBar, manaBar = _G[fn .. "HealthBar"], _G[fn .. "ManaBar"]
+    for _, suffix in ipairs({ "TextureFrameHealthBarText", "TextureFrameManaBarText" }) do
+        local blizzardText = _G[fn .. suffix]
+        if blizzardText then blizzardText:SetAlpha(0) end
+    end
+    BossModule.textSystems[bossIndex] = system.SetupFrameTextSystem("boss", "boss" .. bossIndex, bossFrame,
+        healthBar, manaBar, fn)
+
+    -- Same bar geometry as the target's: its right end runs under the portrait ring.
+    local manaCenter, manaRight = bossFrame[fn .. "ManaText"], bossFrame[fn .. "ManaTextRight"]
+    if manaBar and manaCenter and manaRight then
+        manaCenter:ClearAllPoints()
+        manaCenter:SetPoint("CENTER", manaBar, "CENTER", -2, 0)
+        manaRight:ClearAllPoints()
+        manaRight:SetPoint("RIGHT", manaBar, "RIGHT", -13, 0)
+    end
+end
+
 local function InitializeBossFrames()
     if BossModule.configured then return end
     if InCombatLockdown() then return end
@@ -951,6 +1003,7 @@ local function InitializeBossFrames()
 
             -- Reskin the Blizzard boss frame
             ReskinBossFrame(wrapper, bossFrame, i)
+            SetupBossTexts(bossFrame, i)
 
             -- Hook OnShow to refresh visuals when boss appears
             if not bossFrame.__DragonUI_OnShowHooked then
@@ -992,6 +1045,11 @@ local function InitializeBossFrames()
                 bossFrame.__DragonUI_OnShowHooked = true
             end
         end
+    end
+
+    -- One updater per frame type, so it repaints all four (each setup registered only its own).
+    if addon.TextSystem then
+        addon.TextSystem.RegisterPreviewUpdater("boss", UpdateBossTexts)
     end
 
     HookClassification()
@@ -1065,7 +1123,7 @@ local function SetupEditorMode()
                 local bossFrame = _G["Boss" .. i .. "TargetFrame"]
                 if bossFrame and not InCombatLockdown() then
                     RegisterUnitWatch(bossFrame)
-                    if bossFrame.HideTest and not UnitExists("boss" .. i) then
+                    if bossFrame.HideTest then
                         bossFrame:HideTest()
                     end
                 end
@@ -1265,6 +1323,7 @@ function addon.RefreshBossFrames()
     end
 
     PositionBossFrames()
+    UpdateBossTexts()
 end
 
 -- Store reference on addon for profile callbacks

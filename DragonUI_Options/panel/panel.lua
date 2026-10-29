@@ -476,6 +476,11 @@ function Panel:SelectTab(key, highlight)
         local status = self.scrollWidget.status or self.scrollWidget.localstatus
         savedOffset = status and status.offset
     end
+    local closed = self._closedScroll
+    self._closedScroll = nil
+    if not savedOffset and not highlight and closed and closed.tab == key then
+        savedOffset = closed.offset
+    end
 
     self.currentTab = key
     UpdateTabVisuals()
@@ -609,7 +614,12 @@ scaleWaiter:Hide()
 scaleWaiter:SetScript("OnUpdate", function(self)
     if IsMouseButtonDown("LeftButton") then return end
     self:Hide()
-    Panel:ApplyScale()
+    if self.uiScale then
+        self.uiScale = nil
+        Panel:ApplyUIScale()
+    else
+        Panel:ApplyScale()
+    end
 end)
 
 function Panel:SetScale(value)
@@ -617,6 +627,27 @@ function Panel:SetScale(value)
         addon.db.global.optionsPanelScale = value
     end
     scaleWaiter:Show()
+end
+
+function Panel:SetUIScale(value)
+    addon.UIScale.SetValue(value)
+    scaleWaiter.uiScale = true
+    scaleWaiter:Show()
+end
+
+-- UIParent's rescale shifts windows anchored by offset; keep this one where it is on screen.
+function Panel:ApplyUIScale()
+    local frame = self.frame
+    local x, y
+    if frame then x, y = frame:GetCenter() end
+    local before = x and frame:GetEffectiveScale()
+    addon.UIScale.Apply()
+    if before then
+        local after = frame:GetEffectiveScale()
+        frame:ClearAllPoints()
+        frame:SetPoint("CENTER", UIParent, "BOTTOMLEFT", x * before / after, y * before / after)
+    end
+    self:ApplyScale()
 end
 
 -- ============================================================================
@@ -652,6 +683,10 @@ function Panel:Close()
         end
         -- Release the scroll widget properly
         if self.scrollWidget then
+            -- Search results share this scroll; their offset means nothing to the tab reopened later.
+            local status = self.scrollWidget.status or self.scrollWidget.localstatus
+            self._closedScroll = not self._lastRenderedQuery and { tab = self.currentTab, offset = status and status.offset }
+                or nil
             local C = addon.PanelControls
             if C and C.ClearSearchFontTags then
                 C:ClearSearchFontTags(self.scrollWidget)
@@ -685,6 +720,16 @@ end
 function Panel:IsOpen()
     return self.frame and self.frame:IsShown()
 end
+
+-- Open() refuses combat and not every control's refresh is known to be combat-safe, so an open panel closes.
+local combatClose = CreateFrame("Frame")
+combatClose:RegisterEvent("PLAYER_REGEN_DISABLED")
+combatClose:SetScript("OnEvent", function()
+    if Panel:IsOpen() then
+        Panel:Close()
+        addon:Print(LO["Options closed for combat."])
+    end
+end)
 
 -- Popups the panel opens must stay above its FULLSCREEN_DIALOG-strata AceGUI frames.
 hooksecurefunc("StaticPopup_Show", function()

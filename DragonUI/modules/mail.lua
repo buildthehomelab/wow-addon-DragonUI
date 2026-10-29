@@ -1001,10 +1001,51 @@ local function hideMailChromePieces()
     end
 end
 
+-- Our raised SendMailFrame takes the mouse (drop-to-attach), so addon buttons left on MailFrame went dead.
+local function liftForeignChildren(mailFrame)
+    local inbox, send = _G.InboxFrame, _G.SendMailFrame
+    local top = math.max(inbox and inbox:GetFrameLevel() or 0, send and send:GetFrameLevel() or 0)
+    for _, child in ipairs({ mailFrame:GetChildren() }) do
+        if child ~= inbox and child ~= send and child ~= mailFrame._duiInset
+            and child ~= _G.MailFrameTab1 and child ~= _G.MailFrameTab2 and child:GetFrameLevel() <= top then
+            child:SetFrameLevel(top + 2)
+            liftChildren(child)
+        end
+    end
+end
+
+local function postalModuleEnabled(name)
+    local module = _G.Postal and _G.Postal.GetModule and _G.Postal:GetModule(name, true)
+    return module and module.IsEnabled and module:IsEnabled() and true or false
+end
+
+-- Postal anchors these for Blizzard's 384x512 frame; on ours they sat over the parchment edge.
+local function fitPostal()
+    if _G.InboxCloseButton then
+        place(_G.Postal_ModuleMenuButton, "RIGHT", _G.InboxCloseButton, "LEFT", 0, 0)
+    end
+    local inbox = _G.InboxFrame
+    local headerY = (INSET_INBOX[2] - 21) / 2 - 2
+    -- Shifted right to clear the portrait ring, the spacing Postal gets on Blizzard's frame.
+    place(_G.PostalSelectOpenButton, "RIGHT", inbox, "TOP", 13, headerY)
+    place(_G.PostalSelectReturnButton, "LEFT", inbox, "TOP", 18, headerY)
+    if _G.Postal then
+        -- Postal's Select re-anchors MailItem1 on enable/disable, indented 20 px for its checkboxes.
+        place(_G.MailItem1, "TOPLEFT", inbox, "TOPLEFT", postalModuleEnabled("Select") and 33 or 13, -68)
+        -- Blizzard's 264 px between arrow centres, which Postal's Open All offsets assume.
+        place(_G.InboxPrevPageButton, "BOTTOMLEFT", inbox, "BOTTOMLEFT", 21, 13)
+        place(_G.InboxNextPageButton, "BOTTOMRIGHT", inbox, "BOTTOMRIGHT", -21, 13)
+        -- Button and menu arrow centred between the page arrows (frFR shifted in Postal too).
+        place(_G.PostalOpenAllButton, "CENTER", inbox, "BOTTOM", GetLocale() == "frFR" and -22 or -12, 27)
+    end
+end
+
 local function syncMailTabView()
     local mailFrame = _G.MailFrame
     if not mailFrame or not mailFrame._duiInset then return end
     hideMailChromePieces()
+    liftForeignChildren(mailFrame)
+    fitPostal()
     local selected = (PanelTemplates_GetSelectedTab and PanelTemplates_GetSelectedTab(mailFrame))
         or mailFrame.selectedTab or 1
     placeInset(mailFrame._duiInset, mailFrame, selected == 2 and INSET_SEND or INSET_INBOX)

@@ -1,5 +1,5 @@
 -- Run from the repository root with Lua 5.1.
-local made, timers, callbacks = {}, {}, {}
+local made, timers, callbacks, messages = {}, {}, {}, {}
 local combat, alt = false, false
 local methods = {}
 function InCombatLockdown() return combat end
@@ -77,7 +77,7 @@ function UpdateUIPanelPositions() panelUpdates = panelUpdates + 1 end
 function ShowUIPanel(frame) frame:Show() end
 GameTooltip = {SetOwner=function() end,SetText=function() end,Show=function() end}
 function GameTooltip_Hide() end
-local addon = { db={profile={}}, L=setmetatable({}, {__index=function(_,key) return key end}),
+local addon = { core={RegisterMessage=function(_, event, fn) messages[event]=fn end}, db={profile={}}, L=setmetatable({}, {__index=function(_,key) return key end}),
     After=function(_,_,fn) timers[#timers+1]=fn end, Print=function() end,
     CombatQueue={Add=function(_,_,fn) timers[#timers+1]=fn end} }
 function addon.db.RegisterCallback(_, event, fn) callbacks[event] = fn end
@@ -111,6 +111,15 @@ windows:Restore(f)
 assert(f.x<=400 and f.y<=250,'Changed resolution left a window off-screen')
 UIParent.width,UIParent.height=1000,800
 windows:Restore(f); assert(f.x==700 and f.y==450)
+-- Custom UI scale changes use an addon message, not the client's native event.
+UIParent.width, UIParent.height = 1600, 1280
+messages.DRAGONUI_UI_SCALE_CHANGED(); messages.DRAGONUI_UI_SCALE_CHANGED()
+assert(#timers == 1, 'Scale refresh was not coalesced')
+flush()
+assert(f.x == 1120 and f.y == 720, 'Custom scale did not restore normalized position')
+UIParent.width, UIParent.height = 1000, 800
+messages.DRAGONUI_UI_SCALE_CHANGED(); flush()
+assert(f.x == 700 and f.y == 450)
 -- Combat never installs or moves protected frames; deferred drops finish after combat.
 f.protected=true; combat=true
 record.handle.scripts.OnDragStart(); assert(not record.dragging)

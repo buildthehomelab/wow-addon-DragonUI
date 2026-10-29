@@ -199,6 +199,10 @@ local function refresh()
         Windows:Restore(frame)
     end
 end
+local function queueRefresh()
+    if not queued then queued = true; addon:After(0, refresh) end
+end
+addon.core.RegisterMessage(Windows, 'DRAGONUI_UI_SCALE_CHANGED', queueRefresh)
 events:SetScript('OnEvent', function(_, event)
     if event == 'PLAYER_LOGIN' and addon.db and addon.db.RegisterCallback then
         local function profileChanged()
@@ -217,7 +221,7 @@ events:SetScript('OnEvent', function(_, event)
         addon.db.RegisterCallback(Windows, 'OnProfileCopied', profileChanged)
         addon.db.RegisterCallback(Windows, 'OnProfileReset', profileChanged)
     end
-    if not queued then queued = true; addon:After(0, refresh) end
+    queueRefresh()
 end)
 if ShowUIPanel then hooksecurefunc('ShowUIPanel', function(frame)
     Windows:Scan()

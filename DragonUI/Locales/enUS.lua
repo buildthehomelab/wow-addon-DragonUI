@@ -22,6 +22,7 @@ if not L then return end
 
 -- Combat lockdown messages
 L["Cannot toggle editor mode during combat!"] = true
+L["Editor mode closed for combat."] = true
 L["Cannot reset positions during combat!"] = true
 L["Cannot toggle keybind mode during combat!"] = true
 L["Cannot move frames during combat!"] = true
@@ -252,15 +253,6 @@ L["The addon |cFFFFFF00%s|r conflicts with DragonUI."] = true
 L["Reason:"] = true
 L["Disable the conflicting addon now?"] = true
 L["Keep Both"] = true
-L["DragonUI - D3D9Ex Warning"] = true
-L["DragonUI detected that your client is using D3D9Ex."] = true
-L["DragonUI's action bar system is not compatible with D3D9Ex."] = true
-L["Some DragonUI action bar textures will be missing while this mode is active."] = true
-L["If you want to disable this mode, open WTF\\Config.wtf."] = true
-L["Delete this line:"] = true
-L["Or replace it with:"] = true
-L["Hide Gryphons"] = true
-L["Understood"] = true
 L["DragonUI - UnitFrameLayers Detected"] = true
 L["DragonUI already includes Unit Frame Layers functionality (heal prediction, absorb shields, and animated health loss)."] = true
 L["Choose how to resolve this overlap:"] = true
@@ -1023,6 +1015,7 @@ L["Basic Settings"] = true
 L["Border Alpha"] = true
 L["New Blip Style"] = true
 L["Player Arrow Size"] = true
+L["Addon Button Distance"] = true
 L["Time & Calendar"] = true
 L["Show Clock"] = true
 L["Clock Font Size"] = true

@@ -25,9 +25,9 @@ L["DragonUI"] = true
 L["Core"] = true
 L["Frames"] = true
 L["Interface"] = true
-L["Use the tabs on the left to configure modules, action bars, unit frames, minimap, and more."] = true
 L["Editor Mode"] = true
 L["Cannot open options during combat."] = true
+L["Options closed for combat."] = true
 L["Open DragonUI Settings"] = true
 L["Open the DragonUI configuration panel."] = true
 L["Use /dragonui to open the full settings panel."] = true
@@ -60,6 +60,14 @@ L["Automatically select greed or disenchant (when available) on green quality it
 -- Settings window
 L["Settings Window"] = true
 L["Size of this window on top of your UI scale; 1.0 matches the other panels. It never grows past the screen."] = true
+
+-- UI scale
+L["UI Scale"] = true
+L["Custom UI Scale"] = true
+L["Lets the interface go smaller than Blizzard's 0.64. Replaces the UI Scale in Video options."] = true
+L["Size of the whole interface. Lower values fit more on screen."] = true
+L["Auto Scale"] = true
+L["Use the scale that draws one interface pixel per screen pixel at your resolution."] = true
 
 L["Commands: /dragonui, /dui, /pi \226\128\148 /dragonui edit (editor) \226\128\148 /dragonui help"] = true
 L["GitHub (select and Ctrl+C to copy):"] = true
@@ -149,6 +157,8 @@ L["Extra scale applied on top of the minimap scale."] = true
 L["Enable DragonUI player castbar styling."] = true
 L["Enable DragonUI target castbar styling."] = true
 L["Enable DragonUI focus castbar styling."] = true
+L["Hide Blizzard's Castbar"] = true
+L["With this cast bar off, hide Blizzard's too, so none is shown."] = true
 L["Master toggle for the complete action bars system."] = true
 L["Includes main bars, vehicle, stance, pet, totem bars, and button styling."] = true
 L["Use Bartender4"] = true
@@ -348,8 +358,11 @@ L["Apply the DragonUI skin to the Blizzard loot window."] = true
 L["Open at Cursor"] = true
 L["Open the loot window at the cursor instead of its saved position."] = true
 L["Disable Open at Cursor, then drag the loot window to save its position."] = true
+L["If auto loot is on, hold your auto loot key (Shift by default) while looting, then drag the window to save its position."] = true
 L["Animate Loot Reflow"] = true
 L["Smoothly close gaps and resize the loot window after collecting items."] = true
+L["Auto Loot Hold"] = true
+L["Seconds auto-looted items stay in the loot window before sliding out. Clicks pass through while they wait. 0 slides them out at once."] = true
 L["Reset Loot Window Position"] = true
 L["Clear the saved position. The Blizzard default will be used next time you open the loot window."] = true
 
@@ -664,6 +677,8 @@ L["Bottom Right Bar Layout"] = true
 L["Right Bar Layout"] = true
 L["Left Bar Layout"] = true
 L["Configure the main action bar grid layout. Rows are determined automatically from columns and buttons shown."] = true
+L["Page by Form (Classless Servers)"] = true
+L["The main bar changes page with your stance or form, whatever your class. Only for classless servers."] = true
 L["Columns"] = true
 L["Buttons Shown"] = true
 L["Change Button Order"] = true
@@ -869,7 +884,7 @@ L["Reverse the order of micromenu buttons in the grid."] = true
 L["Hide on Vehicle"] = true
 L["Hide micromenu and bags while in a vehicle."] = true
 L["Show Latency Indicator"] = true
-L["Show a colored bar below the Help button indicating connection quality (green/yellow/red). Requires UI reload."] = true
+L["Show a colored bar below the Help button indicating connection quality (green/yellow/red)."] = true
 
 -- Bags
 L["Bags"] = true
@@ -892,6 +907,8 @@ L["Apply DragonUI border styling to addon icons."] = true
 L["Addon Button Fade"] = true
 L["Addon icons fade out when not hovered."] = true
 L["Player Arrow Size"] = true
+L["Addon Button Distance"] = true
+L["Moves LibDBIcon addon buttons out from the minimap's edge, or in with a negative value."] = true
 L["New Blip Style"] = true
 L["Use newer-style minimap blip icons."] = true
 L["Show Ping Sender"] = true

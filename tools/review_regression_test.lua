@@ -175,7 +175,8 @@ print('merchant: delayed payment, locked items, rejected sales, close cancellati
 
 -- Load the whole mail module; reach its existing Open All closure without exporting test-only APIs.
 made = frames()
-addon = { L=L, _dir='', IsModuleEnabled=function() return true end }
+addon = { L=L, _dir='', IsModuleEnabled=function() return true end,
+    WindowSeat={buttonLeft=7.5,buttonRight=-8.5,buttonBottom=7.5,gap=3} }
 local letters, takes = {}, {}
 ERR_INV_FULL, ERR_ITEM_MAX_COUNT, ERR_TOO_MUCH_GOLD = 'full','unique','gold cap'
 MailFrame = { IsShown=function() return true end }

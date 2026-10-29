@@ -24,7 +24,9 @@ local defaults = {
         auraDurations = {}, -- Observed debuff durations for nameplates: [spellId] = seconds
         addonIcons = {}, -- Addon manager icons learned from loaded addons: [lowercase folder] = { icon, coords }
         itemOwnership = { version = 1, realms = {} }, -- Per-realm, per-character item counts for the tooltip module
-        optionsPanelScale = 1 -- Settings window scale on top of the UI scale
+        optionsPanelScale = 1, -- Settings window scale on top of the UI scale
+        uiScaleEnabled = false, -- DragonUI sets UIParent's scale itself, which can go below Blizzard's 0.64
+        uiScale = false -- That scale; false until first enabled, then seeded from the scale on screen
     },
     profile = {
         windowPositions = {}, -- Main window positions, normalized to the screen for each profile
@@ -366,7 +368,9 @@ local defaults = {
             scale_leftbar = 0.9,
             scale_bottomleft = 0.9,
             scale_bottomright = 0.9,
-            scale_vehicle = 1
+            scale_vehicle = 1,
+
+            page_by_form = false, -- Main bar pages by the stance bar's form names, for classless servers
         },
 
         -- ACTION BAR VISIBILITY SETTINGS
@@ -626,6 +630,7 @@ local defaults = {
             farm_mode_scale = 1.5, -- Extra scale on top of minimap.scale (clamped to 1-2)
             collector_enabled = true,
             collector_style = "dragonui",
+            addon_button_distance = 0, -- Map units LibDBIcon addon buttons move out (+) or in (-) from their usual orbit
             animated_border_enabled = false,
             animated_border_scale = 0.9,
             animated_border_preset = "drg_preset_01",
@@ -669,6 +674,7 @@ local defaults = {
         castbar = {
             enabled = true,
             hide = false, -- no player cast bar at all, DragonUI's or Blizzard's
+            hideBlizzard = false, -- with the DragonUI bar off, hide Blizzard's too
             scale = 1,
             text_mode = "simple",
             precision_time = 1,
@@ -706,6 +712,7 @@ local defaults = {
             target = {
                 enabled = true,
                 hide = false,
+                hideBlizzard = false,
                 override = false,
                 scale = 1,
                 x_position = 0,
@@ -730,6 +737,7 @@ local defaults = {
             focus = {
                 enabled = true,
                 hide = false,
+                hideBlizzard = false,
                 override = false,
                 scale = 1,
                 x_position = 0,
@@ -902,6 +910,10 @@ local defaults = {
             boss = {
                 enabled = true,
                 scale = 1.0,
+                breakUpLargeNumbers = true,
+                textFormat = "both",
+                showHealthTextAlways = false,
+                showManaTextAlways = false,
                 override = false,
                 anchor = 'TOPRIGHT',
                 anchorParent = 'TOPRIGHT',
@@ -1325,6 +1337,7 @@ local defaults = {
                 enabled = true, -- Retail-style skin for the Blizzard loot window
                 animated_reflow = true, -- Compact collected loot with animated rows and panel resizing
                 auto_hide_empty = false, -- Close the loot window when there is nothing left to loot
+                auto_loot_hold = 0, -- Seconds auto-looted rows stay before flying out (0 = at once)
             },
             bagsort = {
                 enabled = true, -- Sort bags and bank items with buttons

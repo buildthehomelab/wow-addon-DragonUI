@@ -1,4 +1,13 @@
 -- Run from the repository root with Lua 5.1.
+-- Wrath supplies bit.band; standalone Lua 5.1 does not. Flags here are nonnegative integers.
+bit = bit or { band = function(a, b)
+    local result, place = 0, 1
+    while a > 0 and b > 0 do
+        if a % 2 == 1 and b % 2 == 1 then result = result + place end
+        a, b, place = math.floor(a / 2), math.floor(b / 2), place * 2
+    end
+    return result
+end }
 local now = 100
 format = string.format
 function GetTime() return now end

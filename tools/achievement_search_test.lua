@@ -45,7 +45,7 @@ print('achievement search: reward filters, literal text and progressive chains p
 local frames = {}
 local methods = {}
 local function noop() end
-for _, name in ipairs({'SetSize','SetPoint','SetFrameLevel','SetBackdrop','SetBackdropColor','EnableMouse','SetAutoFocus','SetWidth','SetJustifyH','SetHighlightTexture','SetTexture','SetFocus','ClearFocus','RegisterEvent','SetOwner','AddLine'}) do methods[name] = noop end
+for _, name in ipairs({'SetSize','SetHeight','SetPoint','SetFrameLevel','SetBackdrop','SetBackdropColor','EnableMouse','SetAutoFocus','SetWidth','SetJustifyH','SetHighlightTexture','SetTexture','SetFocus','ClearFocus','RegisterEvent','SetOwner','AddLine'}) do methods[name] = noop end
 function methods:SetScript(event, fn) self.scripts[event] = fn end
 function methods:HookScript(event, fn) self.scripts[event] = fn end
 function methods:GetFrameLevel() return 1 end

@@ -10,6 +10,8 @@ lua5.1 tools/movement_speed_test.lua
 lua5.1 tools/quest_givers_test.lua
 lua5.1 tools/review_regression_test.lua
 lua5.1 tools/window_positions_test.lua
+lua5.1 tools/upstream_integration_test.lua
+lua5.1 tools/ui_scale_test.lua
 python3 tools/recolour_grounds.py --check
 python3 tools/link_icon_bubble.py --check
 ```
@@ -34,3 +36,11 @@ addons, empty-loot auto-hide, large alt-gold totals, and Mind Sear / Volley tick
 
 After merging upstream, `python3 tools/recolour_grounds.py --check` says whether `ui-background-rock`
 and `ui-background-marble` need their warm brown recolour regenerated.
+
+See [the October 28 upstream integration report](UPSTREAM-2026-10-28.md) for source
+parents, conflict decisions, validation and the pending client/delivery checklist.
+
+Measure behavioral line coverage with Lua/luac 5.1:
+`python3 tools/measure_coverage.py --output /tmp/dragonui-coverage.json`.
+See `coverage-baseline.json` for the measured baseline and the integration report
+for remaining gaps; this is not full line or branch coverage.

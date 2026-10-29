@@ -50,28 +50,21 @@ local function ModuleToggle(parent, opts)
         desc  = desc,
         disabled = handedOff,
         getFunc = function()
-            local modules = addon.db.profile.modules
-            if not modules then return false end
             for _, name in ipairs(moduleNames) do
-                if not (modules[name] and modules[name].enabled) then
+                if not addon.Reload.ModuleState(name) then
                     return false
                 end
             end
             return true
         end,
         setFunc = function(val)
-            if not addon.db.profile.modules then
-                addon.db.profile.modules = {}
-            end
+            local applied = false
             for _, name in ipairs(moduleNames) do
-                if not addon.db.profile.modules[name] then
-                    addon.db.profile.modules[name] = {}
-                end
-                addon.db.profile.modules[name].enabled = val
+                applied = addon:SetModuleEnabled(name, val) or applied
             end
+            -- A staged change isn't running yet, so there is nothing for the callback to refresh.
+            if applied and opts.callback then opts.callback(val) end
         end,
-        callback = opts.callback,
-        requiresReload = (opts.requiresReload ~= false), -- default true
     })
 end
 
@@ -99,12 +92,28 @@ local function BuildModulesTab(scroll)
     -- ====================================================================
     local castSection = C:AddSection(scroll, LO["Cast Bars"])
 
+    -- Listed only while that DragonUI bar is off; its own toggle rebuilds the tab.
+    local function HideBlizzardToggle(cfgPath, refresh)
+        if C:GetDBValue(cfgPath .. "enabled") ~= false then return end
+        C:AddToggle(castSection, {
+            label = LO["Hide Blizzard's Castbar"],
+            desc = LO["With this cast bar off, hide Blizzard's too, so none is shown."],
+            dbPath = cfgPath .. "hideBlizzard",
+            indent = 18,
+            callback = function() if refresh then refresh() end end,
+        })
+    end
+
     C:AddToggle(castSection, {
         label = LO["Player Castbar"],
         desc = LO["Enable DragonUI player castbar styling."],
         dbPath = "castbar.enabled",
-        callback = function() if addon.RefreshCastbar then addon.RefreshCastbar() end end,
+        callback = function()
+            if addon.RefreshCastbar then addon.RefreshCastbar() end
+            Panel:SelectTab("modules")
+        end,
     })
+    HideBlizzardToggle("castbar.", addon.RefreshCastbar)
 
     C:AddToggle(castSection, {
         label = LO["Target Castbar"],
@@ -120,15 +129,23 @@ local function BuildModulesTab(scroll)
             end
             addon.db.profile.castbar.target.enabled = val
         end,
-        callback = function() if addon.RefreshTargetCastbar then addon.RefreshTargetCastbar() end end,
+        callback = function()
+            if addon.RefreshTargetCastbar then addon.RefreshTargetCastbar() end
+            Panel:SelectTab("modules")
+        end,
     })
+    HideBlizzardToggle("castbar.target.", addon.RefreshTargetCastbar)
 
     C:AddToggle(castSection, {
         label = LO["Focus Castbar"],
         desc = LO["Enable DragonUI focus castbar styling."],
         dbPath = "castbar.focus.enabled",
-        callback = function() if addon.RefreshFocusCastbar then addon.RefreshFocusCastbar() end end,
+        callback = function()
+            if addon.RefreshFocusCastbar then addon.RefreshFocusCastbar() end
+            Panel:SelectTab("modules")
+        end,
     })
+    HideBlizzardToggle("castbar.focus.", addon.RefreshFocusCastbar)
 
     C:AddToggle(castSection, {
         label = LO["Global Cooldown"],
@@ -180,43 +197,24 @@ local function BuildModulesTab(scroll)
         label = LO["Buff Frame System"],
         desc = LO["Buff frame styling and toggle button."],
         moduleName = "buffs",
-        callback = function(val)
-            if addon.BuffFrameModule then
-                addon.BuffFrameModule:Toggle(val)
-            end
-        end,
     })
-
-
 
     ModuleToggle(uiSection, {
         label = LO["Cooldown Timers"],
         desc = LO["Show cooldown timers on action buttons."],
         moduleName = "cooldowns",
-        requiresReload = false,
-        callback = function()
-            if addon.RefreshCooldownSystem then addon.RefreshCooldownSystem() end
-        end,
     })
 
     ModuleToggle(uiSection, {
         label = LO["Target & Focus Aura Customization"],
         desc = LO["Customize target/focus aura icons and timers."],
         moduleName = "auracooldowns",
-        requiresReload = false,
-        callback = function()
-            if addon.RefreshAuraCooldownTextSystem then addon.RefreshAuraCooldownTextSystem() end
-        end,
     })
 
     ModuleToggle(uiSection, {
         label = LO["Range Indicator"],
         desc = LO["Tints action button icons based on range and usability: red = out of range, blue = not enough mana, gray = unusable."],
         moduleName = "rage_indicator",
-        requiresReload = false,
-        callback = function()
-            if addon.RefreshRageIndicatorSystem then addon.RefreshRageIndicatorSystem() end
-        end,
     })
 
     ModuleToggle(uiSection, {
@@ -260,7 +258,6 @@ local function BuildModulesTab(scroll)
         label = LO["Enable Unit Frame Layers"],
         desc = LO["Show heal prediction, absorb shields, and animated health loss on all unit frames."],
         moduleName = "unitframe_layers",
-        requiresReload = true,
     })
 
     -- ====================================================================
@@ -277,6 +274,8 @@ local function BuildModulesTab(scroll)
     if MR and MR.loadOrder then
         local hiddenAdvancedModules = {
             castbar = true,
+            -- Its flag is castbar.gcd.enabled, toggled in Cast Bars above.
+            gcd = true,
             player = true,
             boss = true,
             rage_indicator = true,

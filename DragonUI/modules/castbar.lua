@@ -102,11 +102,14 @@ addon.CastbarModule = CastbarModule
 
 if addon.RegisterModule then
     local L = addon.L
+    -- Each bar follows its own enabled flag, so one pass both applies and restores a profile.
+    local function RefreshAllCastbars()
+        if IsLoggedIn() then CastbarModule:UpdateWidgets() end
+    end
     addon:RegisterModule("castbar", CastbarModule,
         L["Cast Bar"],
         L["Custom player, target, and focus cast bars"], {
-        refresh = "RefreshCastbar",
-        loadOnce = true,
+        lifecycle = { refresh = RefreshAllCastbars, restore = RefreshAllCastbars },
         isEnabled = function()
             local cfg = addon.db and addon.db.profile and addon.db.profile.castbar
             return cfg and cfg.enabled
@@ -484,7 +487,7 @@ DragonUI_HiddenCastbarParent:Hide()
 -- Store original parents for restore
 local blizzardCastbarOriginalParents = {}
 
-local function HideBlizzardCastbar(unitType)
+local function HideBlizzardCastbar(unitType, keepParent)
     -- Skip if already hidden
     if CastbarModule.blizzardHidden[unitType] then
         return
@@ -509,7 +512,7 @@ local function HideBlizzardCastbar(unitType)
     
     -- Keep target/focus under Blizzard's parent so vanilla position logic still runs.
     -- Player castbar can still be reparented to avoid interference with the custom bar.
-    if unitType == "player" and not InCombatLockdown() then
+    if unitType == "player" and not keepParent and not InCombatLockdown() then
         frame:SetParent(DragonUI_HiddenCastbarParent)
     end
     
@@ -544,8 +547,13 @@ local function ShowBlizzardCastbar(unitType)
     end
     
     -- Phase 2: Restore original parent for player castbar only
-    if unitType == "player" and not InCombatLockdown() and blizzardCastbarOriginalParents[unitType] then
-        frame:SetParent(blizzardCastbarOriginalParents[unitType])
+    local originalParent = unitType == "player" and blizzardCastbarOriginalParents[unitType]
+    if originalParent and InCombatLockdown() then
+        addon.CombatQueue:Add("castbar_restore_player_parent", function()
+            if not IsEnabled("player") then frame:SetParent(originalParent) end
+        end)
+    elseif originalParent then
+        frame:SetParent(originalParent)
     end
     
     frame:SetAlpha(1)
@@ -1899,6 +1907,8 @@ function CastbarModule:RefreshCastbar(unitType)
         HideBlizzardCastbar(unitType)
     else
         ShowBlizzardCastbar(unitType)
+        -- Kept under its parent: the GCD bar anchors to Blizzard's player bar while ours is off.
+        if cfg.hideBlizzard then HideBlizzardCastbar(unitType, true) end
         self:HideCastbar(unitType)
         if unitType == "player" and addon.RelayoutGCD then
             addon.RelayoutGCD()
@@ -2369,8 +2379,9 @@ end
 function CastbarModule:HandleTargetChanged()
     local frames = self.frames.target
     local statusBar = frames.castbar
-    
-    if not statusBar then
+
+    -- Turned off this session: Blizzard's bar is back and must not be hidden again below.
+    if not statusBar or not IsEnabled("target") then
         return
     end
     
@@ -2402,8 +2413,8 @@ end
 function CastbarModule:HandleFocusChanged()
     local frames = self.frames.focus
     local statusBar = frames.castbar
-    
-    if not statusBar then
+
+    if not statusBar or not IsEnabled("focus") then
         return
     end
     
@@ -2656,8 +2667,19 @@ local function ShowPlayerCastbarTest()
     end
 end
 
+-- The preview replaced any real cast; pick up one still running, the way a target change does.
+local function ResumeRealCast(unitType)
+    if not IsEnabled(unitType) or not UnitExists(unitType) then return end
+    if UnitCastingInfo(unitType) then
+        CastbarModule:HandleCastingEvent("UNIT_SPELLCAST_START", unitType)
+    elseif UnitChannelInfo(unitType) then
+        CastbarModule:HandleCastingEvent("UNIT_SPELLCAST_CHANNEL_START", unitType)
+    end
+end
+
 local function HidePlayerCastbarTest()
     CastbarModule:HideCastbar("player")
+    ResumeRealCast("player")
 end
 
 local function ShowCastbarTest(unitType)
@@ -2686,6 +2708,7 @@ end
 
 local function HideCastbarTest(unitType)
     CastbarModule:HideCastbar(unitType)
+    ResumeRealCast(unitType)
 end
 
 local function HandleCastbarEditorHide(unitType)

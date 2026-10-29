@@ -1,0 +1,1418 @@
+{
+  "method": "Lua 5.1 line hook / luac executable source lines across all nested prototypes",
+  "tests_passed": 9,
+  "covered_lines": 5069,
+  "executable_lines": 151335,
+  "line_percent": 3.35,
+  "branch_coverage": "unmeasured",
+  "files": {
+    "DragonUI/Locales/deDE.lua": {
+      "covered": 0,
+      "executable": 1010
+    },
+    "DragonUI/Locales/enUS.lua": {
+      "covered": 0,
+      "executable": 1108
+    },
+    "DragonUI/Locales/esES.lua": {
+      "covered": 0,
+      "executable": 1012
+    },
+    "DragonUI/Locales/esMX.lua": {
+      "covered": 0,
+      "executable": 1012
+    },
+    "DragonUI/Locales/frFR.lua": {
+      "covered": 0,
+      "executable": 1010
+    },
+    "DragonUI/Locales/koKR.lua": {
+      "covered": 0,
+      "executable": 1010
+    },
+    "DragonUI/Locales/locale_override.lua": {
+      "covered": 0,
+      "executable": 27
+    },
+    "DragonUI/Locales/ptBR.lua": {
+      "covered": 0,
+      "executable": 1010
+    },
+    "DragonUI/Locales/ruRU.lua": {
+      "covered": 0,
+      "executable": 1025
+    },
+    "DragonUI/Locales/zhCN.lua": {
+      "covered": 0,
+      "executable": 1010
+    },
+    "DragonUI/Locales/zhTW.lua": {
+      "covered": 0,
+      "executable": 1010
+    },
+    "DragonUI/config.lua": {
+      "covered": 0,
+      "executable": 107
+    },
+    "DragonUI/core/api.lua": {
+      "covered": 0,
+      "executable": 1032
+    },
+    "DragonUI/core/combatlog_fix.lua": {
+      "covered": 0,
+      "executable": 37
+    },
+    "DragonUI/core/commands.lua": {
+      "covered": 0,
+      "executable": 341
+    },
+    "DragonUI/core/editor_panel.lua": {
+      "covered": 0,
+      "executable": 1106
+    },
+    "DragonUI/core/editor_settings.lua": {
+      "covered": 0,
+      "executable": 1540
+    },
+    "DragonUI/core/fonts.lua": {
+      "covered": 0,
+      "executable": 20
+    },
+    "DragonUI/core/modelview.lua": {
+      "covered": 0,
+      "executable": 158
+    },
+    "DragonUI/core/position_presets.lua": {
+      "covered": 323,
+      "executable": 889
+    },
+    "DragonUI/core/reload.lua": {
+      "covered": 115,
+      "executable": 142
+    },
+    "DragonUI/core/texture_warmup.lua": {
+      "covered": 0,
+      "executable": 69
+    },
+    "DragonUI/core/uiscale.lua": {
+      "covered": 68,
+      "executable": 68
+    },
+    "DragonUI/core/visibility_fade.lua": {
+      "covered": 0,
+      "executable": 244
+    },
+    "DragonUI/core.lua": {
+      "covered": 0,
+      "executable": 104
+    },
+    "DragonUI/data/aura_durations.lua": {
+      "covered": 0,
+      "executable": 1908
+    },
+    "DragonUI/data/companion_traits.lua": {
+      "covered": 0,
+      "executable": 123
+    },
+    "DragonUI/data/mount_speeds.lua": {
+      "covered": 0,
+      "executable": 64
+    },
+    "DragonUI/data/npc_rare_ranks.lua": {
+      "covered": 0,
+      "executable": 98
+    },
+    "DragonUI/database.lua": {
+      "covered": 1363,
+      "executable": 1374
+    },
+    "DragonUI/libs/AbsorbsMonitor-1.0/AbsorbsMonitor-1.0.lua": {
+      "covered": 0,
+      "executable": 1162
+    },
+    "DragonUI/libs/AceAddon-3.0/AceAddon-3.0.lua": {
+      "covered": 0,
+      "executable": 235
+    },
+    "DragonUI/libs/AceComm-3.0/AceComm-3.0.lua": {
+      "covered": 0,
+      "executable": 153
+    },
+    "DragonUI/libs/AceComm-3.0/ChatThrottleLib.lua": {
+      "covered": 0,
+      "executable": 276
+    },
+    "DragonUI/libs/AceConsole-3.0/AceConsole-3.0.lua": {
+      "covered": 0,
+      "executable": 125
+    },
+    "DragonUI/libs/AceDB-3.0/AceDB-3.0.lua": {
+      "covered": 0,
+      "executable": 353
+    },
+    "DragonUI/libs/AceEvent-3.0/AceEvent-3.0.lua": {
+      "covered": 0,
+      "executable": 44
+    },
+    "DragonUI/libs/AceLocale-3.0/AceLocale-3.0-DragonUI.lua": {
+      "covered": 0,
+      "executable": 73
+    },
+    "DragonUI/libs/AceLocale-3.0/AceLocale-3.0.lua": {
+      "covered": 0,
+      "executable": 51
+    },
+    "DragonUI/libs/AceSerializer-3.0/AceSerializer-3.0.lua": {
+      "covered": 109,
+      "executable": 164
+    },
+    "DragonUI/libs/AceTimer-3.0/AceTimer-3.0.lua": {
+      "covered": 0,
+      "executable": 200
+    },
+    "DragonUI/libs/CallbackHandler-1.0/CallbackHandler-1.0.lua": {
+      "covered": 0,
+      "executable": 113
+    },
+    "DragonUI/libs/LibDeflate/LibDeflate.lua": {
+      "covered": 1107,
+      "executable": 1865
+    },
+    "DragonUI/libs/LibHealComm-4.0/ChatThrottleLib.lua": {
+      "covered": 0,
+      "executable": 276
+    },
+    "DragonUI/libs/LibHealComm-4.0/LibHealComm-4.0.lua": {
+      "covered": 0,
+      "executable": 1659
+    },
+    "DragonUI/libs/LibKeyBound-1.0/LibKeyBound-1.0.lua": {
+      "covered": 0,
+      "executable": 392
+    },
+    "DragonUI/libs/LibKeyBound-1.0/Locale-deDE.lua": {
+      "covered": 0,
+      "executable": 74
+    },
+    "DragonUI/libs/LibKeyBound-1.0/Locale-enUS.lua": {
+      "covered": 0,
+      "executable": 81
+    },
+    "DragonUI/libs/LibKeyBound-1.0/Locale-esES.lua": {
+      "covered": 0,
+      "executable": 79
+    },
+    "DragonUI/libs/LibKeyBound-1.0/Locale-esMX.lua": {
+      "covered": 0,
+      "executable": 74
+    },
+    "DragonUI/libs/LibKeyBound-1.0/Locale-frFR.lua": {
+      "covered": 0,
+      "executable": 74
+    },
+    "DragonUI/libs/LibKeyBound-1.0/Locale-koKR.lua": {
+      "covered": 0,
+      "executable": 74
+    },
+    "DragonUI/libs/LibKeyBound-1.0/Locale-ruRU.lua": {
+      "covered": 0,
+      "executable": 74
+    },
+    "DragonUI/libs/LibKeyBound-1.0/Locale-zhCN.lua": {
+      "covered": 0,
+      "executable": 75
+    },
+    "DragonUI/libs/LibKeyBound-1.0/Locale-zhTW.lua": {
+      "covered": 0,
+      "executable": 74
+    },
+    "DragonUI/libs/LibStub/LibStub.lua": {
+      "covered": 21,
+      "executable": 22
+    },
+    "DragonUI/libs/LibSwingTimer-1.0/LibSwingTimer-1.0.lua": {
+      "covered": 0,
+      "executable": 393
+    },
+    "DragonUI/modules/achievement_rewards.lua": {
+      "covered": 220,
+      "executable": 220
+    },
+    "DragonUI/modules/achievement_search.lua": {
+      "covered": 139,
+      "executable": 150
+    },
+    "DragonUI/modules/actionbars/checkedstate.lua": {
+      "covered": 0,
+      "executable": 6
+    },
+    "DragonUI/modules/actionbars/extrabar.lua": {
+      "covered": 0,
+      "executable": 1490
+    },
+    "DragonUI/modules/actionbars/multicast.lua": {
+      "covered": 0,
+      "executable": 385
+    },
+    "DragonUI/modules/actionbars/petbar.lua": {
+      "covered": 0,
+      "executable": 472
+    },
+    "DragonUI/modules/actionbars/stance.lua": {
+      "covered": 0,
+      "executable": 407
+    },
+    "DragonUI/modules/actionbars/vehicle.lua": {
+      "covered": 0,
+      "executable": 788
+    },
+    "DragonUI/modules/addonmanager.lua": {
+      "covered": 0,
+      "executable": 691
+    },
+    "DragonUI/modules/addonmanager_icons.lua": {
+      "covered": 0,
+      "executable": 57
+    },
+    "DragonUI/modules/altmoney.lua": {
+      "covered": 0,
+      "executable": 165
+    },
+    "DragonUI/modules/auraborders.lua": {
+      "covered": 0,
+      "executable": 482
+    },
+    "DragonUI/modules/auracooldowns.lua": {
+      "covered": 0,
+      "executable": 373
+    },
+    "DragonUI/modules/autoaccept.lua": {
+      "covered": 0,
+      "executable": 39
+    },
+    "DragonUI/modules/bags_newitems.lua": {
+      "covered": 0,
+      "executable": 320
+    },
+    "DragonUI/modules/bags_skin.lua": {
+      "covered": 0,
+      "executable": 503
+    },
+    "DragonUI/modules/bags_usability.lua": {
+      "covered": 0,
+      "executable": 211
+    },
+    "DragonUI/modules/bagsort.lua": {
+      "covered": 0,
+      "executable": 1532
+    },
+    "DragonUI/modules/bagster/bagster.lua": {
+      "covered": 0,
+      "executable": 354
+    },
+    "DragonUI/modules/bagster/bagster_classes.lua": {
+      "covered": 0,
+      "executable": 1639
+    },
+    "DragonUI/modules/bagster/bagster_data.lua": {
+      "covered": 0,
+      "executable": 462
+    },
+    "DragonUI/modules/bagster/bagster_frame.lua": {
+      "covered": 0,
+      "executable": 727
+    },
+    "DragonUI/modules/bagster/bagster_guild.lua": {
+      "covered": 0,
+      "executable": 786
+    },
+    "DragonUI/modules/bagster/bagster_search.lua": {
+      "covered": 0,
+      "executable": 217
+    },
+    "DragonUI/modules/bagster/bagster_sets.lua": {
+      "covered": 0,
+      "executable": 101
+    },
+    "DragonUI/modules/bagster/bagster_system.lua": {
+      "covered": 0,
+      "executable": 277
+    },
+    "DragonUI/modules/buff_frame.lua": {
+      "covered": 0,
+      "executable": 921
+    },
+    "DragonUI/modules/buttons.lua": {
+      "covered": 0,
+      "executable": 795
+    },
+    "DragonUI/modules/castbar.lua": {
+      "covered": 0,
+      "executable": 1999
+    },
+    "DragonUI/modules/characterpanel/chrome.lua": {
+      "covered": 0,
+      "executable": 234
+    },
+    "DragonUI/modules/characterpanel/compat_hd.lua": {
+      "covered": 0,
+      "executable": 174
+    },
+    "DragonUI/modules/characterpanel/core.lua": {
+      "covered": 0,
+      "executable": 81
+    },
+    "DragonUI/modules/characterpanel/currencypane.lua": {
+      "covered": 0,
+      "executable": 263
+    },
+    "DragonUI/modules/characterpanel/diagnostics.lua": {
+      "covered": 0,
+      "executable": 184
+    },
+    "DragonUI/modules/characterpanel/equipment.lua": {
+      "covered": 0,
+      "executable": 39
+    },
+    "DragonUI/modules/characterpanel/equipmentpane.lua": {
+      "covered": 0,
+      "executable": 606
+    },
+    "DragonUI/modules/characterpanel/gearscore.lua": {
+      "covered": 0,
+      "executable": 86
+    },
+    "DragonUI/modules/characterpanel/honorpane.lua": {
+      "covered": 0,
+      "executable": 217
+    },
+    "DragonUI/modules/characterpanel/innerborder.lua": {
+      "covered": 0,
+      "executable": 48
+    },
+    "DragonUI/modules/characterpanel/insets.lua": {
+      "covered": 0,
+      "executable": 69
+    },
+    "DragonUI/modules/characterpanel/leveltext.lua": {
+      "covered": 0,
+      "executable": 69
+    },
+    "DragonUI/modules/characterpanel/listpane.lua": {
+      "covered": 0,
+      "executable": 361
+    },
+    "DragonUI/modules/characterpanel/model.lua": {
+      "covered": 0,
+      "executable": 102
+    },
+    "DragonUI/modules/characterpanel/modelcontrols.lua": {
+      "covered": 0,
+      "executable": 214
+    },
+    "DragonUI/modules/characterpanel/paneborder.lua": {
+      "covered": 0,
+      "executable": 55
+    },
+    "DragonUI/modules/characterpanel/panes.lua": {
+      "covered": 0,
+      "executable": 32
+    },
+    "DragonUI/modules/characterpanel/petpane.lua": {
+      "covered": 0,
+      "executable": 431
+    },
+    "DragonUI/modules/characterpanel/portrait.lua": {
+      "covered": 66,
+      "executable": 155
+    },
+    "DragonUI/modules/characterpanel/reputationdetail.lua": {
+      "covered": 0,
+      "executable": 153
+    },
+    "DragonUI/modules/characterpanel/reputationpane.lua": {
+      "covered": 0,
+      "executable": 297
+    },
+    "DragonUI/modules/characterpanel/reveal.lua": {
+      "covered": 0,
+      "executable": 73
+    },
+    "DragonUI/modules/characterpanel/scrollbar.lua": {
+      "covered": 0,
+      "executable": 214
+    },
+    "DragonUI/modules/characterpanel/settingscog.lua": {
+      "covered": 0,
+      "executable": 100
+    },
+    "DragonUI/modules/characterpanel/sidebar.lua": {
+      "covered": 0,
+      "executable": 689
+    },
+    "DragonUI/modules/characterpanel/sidebartabs.lua": {
+      "covered": 0,
+      "executable": 164
+    },
+    "DragonUI/modules/characterpanel/skillspane.lua": {
+      "covered": 0,
+      "executable": 208
+    },
+    "DragonUI/modules/characterpanel/slots.lua": {
+      "covered": 0,
+      "executable": 81
+    },
+    "DragonUI/modules/characterpanel/tabs.lua": {
+      "covered": 0,
+      "executable": 218
+    },
+    "DragonUI/modules/characterpanel/titles.lua": {
+      "covered": 0,
+      "executable": 14
+    },
+    "DragonUI/modules/characterpanel/titlespane.lua": {
+      "covered": 0,
+      "executable": 91
+    },
+    "DragonUI/modules/chatmods.lua": {
+      "covered": 0,
+      "executable": 972
+    },
+    "DragonUI/modules/collections/core.lua": {
+      "covered": 0,
+      "executable": 377
+    },
+    "DragonUI/modules/collections/journal.lua": {
+      "covered": 0,
+      "executable": 583
+    },
+    "DragonUI/modules/collections/microbutton.lua": {
+      "covered": 0,
+      "executable": 26
+    },
+    "DragonUI/modules/collections/window.lua": {
+      "covered": 0,
+      "executable": 209
+    },
+    "DragonUI/modules/compatibility.lua": {
+      "covered": 259,
+      "executable": 804
+    },
+    "DragonUI/modules/cooldowns.lua": {
+      "covered": 0,
+      "executable": 173
+    },
+    "DragonUI/modules/darkmode.lua": {
+      "covered": 0,
+      "executable": 922
+    },
+    "DragonUI/modules/editor_mode.lua": {
+      "covered": 0,
+      "executable": 531
+    },
+    "DragonUI/modules/equipmentcompare.lua": {
+      "covered": 0,
+      "executable": 163
+    },
+    "DragonUI/modules/gamemenu.lua": {
+      "covered": 0,
+      "executable": 234
+    },
+    "DragonUI/modules/gamemenu_dragons.lua": {
+      "covered": 0,
+      "executable": 165
+    },
+    "DragonUI/modules/gcd.lua": {
+      "covered": 0,
+      "executable": 234
+    },
+    "DragonUI/modules/guild/benefits.lua": {
+      "covered": 0,
+      "executable": 132
+    },
+    "DragonUI/modules/guild/core.lua": {
+      "covered": 0,
+      "executable": 222
+    },
+    "DragonUI/modules/guild/info.lua": {
+      "covered": 0,
+      "executable": 257
+    },
+    "DragonUI/modules/guild/roster.lua": {
+      "covered": 0,
+      "executable": 451
+    },
+    "DragonUI/modules/guild/window.lua": {
+      "covered": 0,
+      "executable": 387
+    },
+    "DragonUI/modules/hp_low_alert.lua": {
+      "covered": 0,
+      "executable": 135
+    },
+    "DragonUI/modules/itemlevel.lua": {
+      "covered": 0,
+      "executable": 768
+    },
+    "DragonUI/modules/itemownership.lua": {
+      "covered": 0,
+      "executable": 273
+    },
+    "DragonUI/modules/itemquality.lua": {
+      "covered": 0,
+      "executable": 413
+    },
+    "DragonUI/modules/keybinding.lua": {
+      "covered": 0,
+      "executable": 195
+    },
+    "DragonUI/modules/keybinding_search.lua": {
+      "covered": 141,
+      "executable": 144
+    },
+    "DragonUI/modules/keypress.lua": {
+      "covered": 0,
+      "executable": 257
+    },
+    "DragonUI/modules/levelupenhance/levelupdata.lua": {
+      "covered": 0,
+      "executable": 51
+    },
+    "DragonUI/modules/levelupenhance/levelupenhance.lua": {
+      "covered": 0,
+      "executable": 866
+    },
+    "DragonUI/modules/loot_skin.lua": {
+      "covered": 0,
+      "executable": 978
+    },
+    "DragonUI/modules/lootroll.lua": {
+      "covered": 0,
+      "executable": 227
+    },
+    "DragonUI/modules/mail.lua": {
+      "covered": 224,
+      "executable": 941
+    },
+    "DragonUI/modules/mainbars.lua": {
+      "covered": 0,
+      "executable": 2380
+    },
+    "DragonUI/modules/merchant/auto_services.lua": {
+      "covered": 44,
+      "executable": 71
+    },
+    "DragonUI/modules/merchant/buyback_undo.lua": {
+      "covered": 0,
+      "executable": 23
+    },
+    "DragonUI/modules/merchant/merchant_frame.lua": {
+      "covered": 0,
+      "executable": 613
+    },
+    "DragonUI/modules/merchant/sell_junk.lua": {
+      "covered": 87,
+      "executable": 150
+    },
+    "DragonUI/modules/micromenu.lua": {
+      "covered": 0,
+      "executable": 1758
+    },
+    "DragonUI/modules/minimap.lua": {
+      "covered": 0,
+      "executable": 2322
+    },
+    "DragonUI/modules/minimap_collector.lua": {
+      "covered": 0,
+      "executable": 984
+    },
+    "DragonUI/modules/minimap_decorations.lua": {
+      "covered": 0,
+      "executable": 683
+    },
+    "DragonUI/modules/minimap_ping.lua": {
+      "covered": 0,
+      "executable": 19
+    },
+    "DragonUI/modules/minimap_speed.lua": {
+      "covered": 127,
+      "executable": 127
+    },
+    "DragonUI/modules/nameplates/core/atlas.lua": {
+      "covered": 0,
+      "executable": 177
+    },
+    "DragonUI/modules/nameplates/core/config.lua": {
+      "covered": 0,
+      "executable": 129
+    },
+    "DragonUI/modules/nameplates/core/constants.lua": {
+      "covered": 0,
+      "executable": 364
+    },
+    "DragonUI/modules/nameplates/core/init.lua": {
+      "covered": 0,
+      "executable": 29
+    },
+    "DragonUI/modules/nameplates/core/state.lua": {
+      "covered": 0,
+      "executable": 146
+    },
+    "DragonUI/modules/nameplates/core/unitcache.lua": {
+      "covered": 0,
+      "executable": 508
+    },
+    "DragonUI/modules/nameplates/features/auras.lua": {
+      "covered": 0,
+      "executable": 1222
+    },
+    "DragonUI/modules/nameplates/features/castbar.lua": {
+      "covered": 0,
+      "executable": 3059
+    },
+    "DragonUI/modules/nameplates/features/clickbox.lua": {
+      "covered": 0,
+      "executable": 277
+    },
+    "DragonUI/modules/nameplates/features/combo.lua": {
+      "covered": 0,
+      "executable": 108
+    },
+    "DragonUI/modules/nameplates/features/elite.lua": {
+      "covered": 0,
+      "executable": 75
+    },
+    "DragonUI/modules/nameplates/features/quest.lua": {
+      "covered": 0,
+      "executable": 416
+    },
+    "DragonUI/modules/nameplates/features/quest_coexist.lua": {
+      "covered": 0,
+      "executable": 242
+    },
+    "DragonUI/modules/nameplates/features/quest_providers.lua": {
+      "covered": 0,
+      "executable": 88
+    },
+    "DragonUI/modules/nameplates/features/raid_marker.lua": {
+      "covered": 0,
+      "executable": 110
+    },
+    "DragonUI/modules/nameplates/features/retail_chrome.lua": {
+      "covered": 0,
+      "executable": 470
+    },
+    "DragonUI/modules/nameplates/features/tap.lua": {
+      "covered": 0,
+      "executable": 72
+    },
+    "DragonUI/modules/nameplates/features/threat.lua": {
+      "covered": 0,
+      "executable": 139
+    },
+    "DragonUI/modules/nameplates/features/totem.lua": {
+      "covered": 0,
+      "executable": 225
+    },
+    "DragonUI/modules/nameplates/features/widgets.lua": {
+      "covered": 0,
+      "executable": 45
+    },
+    "DragonUI/modules/nameplates/pipeline/discovery.lua": {
+      "covered": 0,
+      "executable": 355
+    },
+    "DragonUI/modules/nameplates/pipeline/engine.lua": {
+      "covered": 0,
+      "executable": 815
+    },
+    "DragonUI/modules/nameplates/pipeline/gather.lua": {
+      "covered": 0,
+      "executable": 867
+    },
+    "DragonUI/modules/nameplates/pipeline/identity.lua": {
+      "covered": 0,
+      "executable": 807
+    },
+    "DragonUI/modules/nameplates/pipeline/layout.lua": {
+      "covered": 0,
+      "executable": 1125
+    },
+    "DragonUI/modules/nameplates/pipeline/lifecycle.lua": {
+      "covered": 0,
+      "executable": 267
+    },
+    "DragonUI/modules/nameplates/pipeline/native_style.lua": {
+      "covered": 0,
+      "executable": 272
+    },
+    "DragonUI/modules/noop.lua": {
+      "covered": 0,
+      "executable": 141
+    },
+    "DragonUI/modules/objectivetracker.lua": {
+      "covered": 0,
+      "executable": 848
+    },
+    "DragonUI/modules/personalresource.lua": {
+      "covered": 0,
+      "executable": 771
+    },
+    "DragonUI/modules/professions/prof_art.lua": {
+      "covered": 0,
+      "executable": 137
+    },
+    "DragonUI/modules/professions/prof_atlas.lua": {
+      "covered": 0,
+      "executable": 143
+    },
+    "DragonUI/modules/professions/prof_core.lua": {
+      "covered": 0,
+      "executable": 91
+    },
+    "DragonUI/modules/professions/prof_details.lua": {
+      "covered": 0,
+      "executable": 286
+    },
+    "DragonUI/modules/professions/prof_fill.lua": {
+      "covered": 0,
+      "executable": 130
+    },
+    "DragonUI/modules/professions/prof_filters.lua": {
+      "covered": 0,
+      "executable": 88
+    },
+    "DragonUI/modules/professions/prof_frame.lua": {
+      "covered": 0,
+      "executable": 217
+    },
+    "DragonUI/modules/professions/prof_host.lua": {
+      "covered": 0,
+      "executable": 253
+    },
+    "DragonUI/modules/professions/prof_list.lua": {
+      "covered": 0,
+      "executable": 390
+    },
+    "DragonUI/modules/professions/prof_microbutton.lua": {
+      "covered": 0,
+      "executable": 42
+    },
+    "DragonUI/modules/professions/prof_model.lua": {
+      "covered": 0,
+      "executable": 108
+    },
+    "DragonUI/modules/professions/prof_overview.lua": {
+      "covered": 0,
+      "executable": 386
+    },
+    "DragonUI/modules/professions/prof_professions.lua": {
+      "covered": 0,
+      "executable": 227
+    },
+    "DragonUI/modules/professions/prof_tabs.lua": {
+      "covered": 0,
+      "executable": 182
+    },
+    "DragonUI/modules/professions/prof_track.lua": {
+      "covered": 0,
+      "executable": 169
+    },
+    "DragonUI/modules/questdialog.lua": {
+      "covered": 0,
+      "executable": 283
+    },
+    "DragonUI/modules/rage_indicator.lua": {
+      "covered": 0,
+      "executable": 205
+    },
+    "DragonUI/modules/servercurrency.lua": {
+      "covered": 0,
+      "executable": 65
+    },
+    "DragonUI/modules/social_skin.lua": {
+      "covered": 0,
+      "executable": 446
+    },
+    "DragonUI/modules/spellbook/book_access.lua": {
+      "covered": 0,
+      "executable": 123
+    },
+    "DragonUI/modules/spellbook/book_bars.lua": {
+      "covered": 0,
+      "executable": 277
+    },
+    "DragonUI/modules/spellbook/book_catalog.lua": {
+      "covered": 0,
+      "executable": 393
+    },
+    "DragonUI/modules/spellbook/book_clique.lua": {
+      "covered": 0,
+      "executable": 151
+    },
+    "DragonUI/modules/spellbook/book_controls.lua": {
+      "covered": 0,
+      "executable": 416
+    },
+    "DragonUI/modules/spellbook/book_core.lua": {
+      "covered": 0,
+      "executable": 255
+    },
+    "DragonUI/modules/spellbook/book_flyout.lua": {
+      "covered": 0,
+      "executable": 312
+    },
+    "DragonUI/modules/spellbook/book_frame.lua": {
+      "covered": 0,
+      "executable": 173
+    },
+    "DragonUI/modules/spellbook/book_layout.lua": {
+      "covered": 0,
+      "executable": 109
+    },
+    "DragonUI/modules/spellbook/book_ranks.lua": {
+      "covered": 0,
+      "executable": 141
+    },
+    "DragonUI/modules/spellbook/book_secure.lua": {
+      "covered": 0,
+      "executable": 172
+    },
+    "DragonUI/modules/spellbook/book_slots.lua": {
+      "covered": 0,
+      "executable": 477
+    },
+    "DragonUI/modules/spellbook/trainerdata.lua": {
+      "covered": 0,
+      "executable": 616
+    },
+    "DragonUI/modules/stockpanels.lua": {
+      "covered": 0,
+      "executable": 836
+    },
+    "DragonUI/modules/swingtimer.lua": {
+      "covered": 0,
+      "executable": 360
+    },
+    "DragonUI/modules/talents/build_code.lua": {
+      "covered": 0,
+      "executable": 118
+    },
+    "DragonUI/modules/talents/build_editor.lua": {
+      "covered": 0,
+      "executable": 330
+    },
+    "DragonUI/modules/talents/build_menu.lua": {
+      "covered": 0,
+      "executable": 201
+    },
+    "DragonUI/modules/talents/build_model.lua": {
+      "covered": 0,
+      "executable": 173
+    },
+    "DragonUI/modules/talents/build_sharing.lua": {
+      "covered": 0,
+      "executable": 123
+    },
+    "DragonUI/modules/talents/entry_points.lua": {
+      "covered": 0,
+      "executable": 180
+    },
+    "DragonUI/modules/talents/footer_bar.lua": {
+      "covered": 0,
+      "executable": 189
+    },
+    "DragonUI/modules/talents/glyph_page.lua": {
+      "covered": 0,
+      "executable": 498
+    },
+    "DragonUI/modules/talents/live_view.lua": {
+      "covered": 0,
+      "executable": 197
+    },
+    "DragonUI/modules/talents/namespace.lua": {
+      "covered": 0,
+      "executable": 174
+    },
+    "DragonUI/modules/talents/pvp_orb.lua": {
+      "covered": 0,
+      "executable": 186
+    },
+    "DragonUI/modules/talents/tab_strip.lua": {
+      "covered": 0,
+      "executable": 137
+    },
+    "DragonUI/modules/talents/tree_canvas.lua": {
+      "covered": 0,
+      "executable": 415
+    },
+    "DragonUI/modules/talents/window_shell.lua": {
+      "covered": 0,
+      "executable": 354
+    },
+    "DragonUI/modules/taxiframe.lua": {
+      "covered": 0,
+      "executable": 262
+    },
+    "DragonUI/modules/tooltip.lua": {
+      "covered": 0,
+      "executable": 465
+    },
+    "DragonUI/modules/unitframes/boss.lua": {
+      "covered": 0,
+      "executable": 838
+    },
+    "DragonUI/modules/unitframes/combopoints.lua": {
+      "covered": 0,
+      "executable": 595
+    },
+    "DragonUI/modules/unitframes/focus.lua": {
+      "covered": 0,
+      "executable": 133
+    },
+    "DragonUI/modules/unitframes/party.lua": {
+      "covered": 0,
+      "executable": 1367
+    },
+    "DragonUI/modules/unitframes/pet.lua": {
+      "covered": 0,
+      "executable": 438
+    },
+    "DragonUI/modules/unitframes/player.lua": {
+      "covered": 0,
+      "executable": 2663
+    },
+    "DragonUI/modules/unitframes/small_frame.lua": {
+      "covered": 0,
+      "executable": 632
+    },
+    "DragonUI/modules/unitframes/target.lua": {
+      "covered": 0,
+      "executable": 340
+    },
+    "DragonUI/modules/unitframes/target_style.lua": {
+      "covered": 0,
+      "executable": 1158
+    },
+    "DragonUI/modules/unitframes/text_system.lua": {
+      "covered": 0,
+      "executable": 311
+    },
+    "DragonUI/modules/unitframes/tof.lua": {
+      "covered": 0,
+      "executable": 36
+    },
+    "DragonUI/modules/unitframes/tot.lua": {
+      "covered": 0,
+      "executable": 37
+    },
+    "DragonUI/modules/unitframes/uf_compact.lua": {
+      "covered": 0,
+      "executable": 287
+    },
+    "DragonUI/modules/unitframes/uf_core.lua": {
+      "covered": 0,
+      "executable": 291
+    },
+    "DragonUI/modules/unitframes/uf_layers_deps.lua": {
+      "covered": 0,
+      "executable": 469
+    },
+    "DragonUI/modules/unitframes/uf_skins.lua": {
+      "covered": 0,
+      "executable": 427
+    },
+    "DragonUI/modules/unitframes/unitframe_layers.lua": {
+      "covered": 0,
+      "executable": 601
+    },
+    "DragonUI/modules/versioncheck.lua": {
+      "covered": 0,
+      "executable": 117
+    },
+    "DragonUI/modules/worldmap/coords.lua": {
+      "covered": 0,
+      "executable": 60
+    },
+    "DragonUI/modules/worldmap/core.lua": {
+      "covered": 0,
+      "executable": 444
+    },
+    "DragonUI/modules/worldmap/entrancedata.lua": {
+      "covered": 0,
+      "executable": 699
+    },
+    "DragonUI/modules/worldmap/fade.lua": {
+      "covered": 0,
+      "executable": 31
+    },
+    "DragonUI/modules/worldmap/flightpointdata.lua": {
+      "covered": 0,
+      "executable": 1214
+    },
+    "DragonUI/modules/worldmap/fog.lua": {
+      "covered": 0,
+      "executable": 53
+    },
+    "DragonUI/modules/worldmap/fogdata.lua": {
+      "covered": 0,
+      "executable": 1011
+    },
+    "DragonUI/modules/worldmap/graveyarddata.lua": {
+      "covered": 0,
+      "executable": 65
+    },
+    "DragonUI/modules/worldmap/grouppins.lua": {
+      "covered": 0,
+      "executable": 152
+    },
+    "DragonUI/modules/worldmap/inndata.lua": {
+      "covered": 0,
+      "executable": 252
+    },
+    "DragonUI/modules/worldmap/mappins.lua": {
+      "covered": 170,
+      "executable": 278
+    },
+    "DragonUI/modules/worldmap/navbar.lua": {
+      "covered": 0,
+      "executable": 269
+    },
+    "DragonUI/modules/worldmap/pins.lua": {
+      "covered": 0,
+      "executable": 433
+    },
+    "DragonUI/modules/worldmap/playerarrow.lua": {
+      "covered": 0,
+      "executable": 36
+    },
+    "DragonUI/modules/worldmap/questdetail.lua": {
+      "covered": 0,
+      "executable": 357
+    },
+    "DragonUI/modules/worldmap/questgivers.lua": {
+      "covered": 137,
+      "executable": 140
+    },
+    "DragonUI/modules/worldmap/questlog.lua": {
+      "covered": 0,
+      "executable": 797
+    },
+    "DragonUI/modules/worldmap/zonelevels.lua": {
+      "covered": 0,
+      "executable": 55
+    },
+    "DragonUI/modules/worldmap/zoom.lua": {
+      "covered": 0,
+      "executable": 156
+    },
+    "DragonUI/modules/xprate.lua": {
+      "covered": 0,
+      "executable": 183
+    },
+    "DragonUI/utils/atlas.lua": {
+      "covered": 0,
+      "executable": 801
+    },
+    "DragonUI/utils/core.lua": {
+      "covered": 0,
+      "executable": 121
+    },
+    "DragonUI/utils/events.lua": {
+      "covered": 0,
+      "executable": 32
+    },
+    "DragonUI/utils/forever_atlas_chrome.lua": {
+      "covered": 0,
+      "executable": 137
+    },
+    "DragonUI/utils/forever_atlas_controls.lua": {
+      "covered": 0,
+      "executable": 94
+    },
+    "DragonUI/utils/forever_ui_base.lua": {
+      "covered": 0,
+      "executable": 19
+    },
+    "DragonUI/utils/forever_ui_chrome.lua": {
+      "covered": 0,
+      "executable": 657
+    },
+    "DragonUI/utils/forever_ui_controls.lua": {
+      "covered": 0,
+      "executable": 1656
+    },
+    "DragonUI/utils/iconframe.lua": {
+      "covered": 0,
+      "executable": 47
+    },
+    "DragonUI/utils/menu.lua": {
+      "covered": 0,
+      "executable": 345
+    },
+    "DragonUI/utils/nineslice.lua": {
+      "covered": 0,
+      "executable": 197
+    },
+    "DragonUI/utils/questpoi.lua": {
+      "covered": 0,
+      "executable": 109
+    },
+    "DragonUI/utils/redbutton.lua": {
+      "covered": 0,
+      "executable": 90
+    },
+    "DragonUI/utils/vehicleart.lua": {
+      "covered": 0,
+      "executable": 55
+    },
+    "DragonUI/utils/window_positions.lua": {
+      "covered": 177,
+      "executable": 189
+    },
+    "DragonUI_Options/Locales/deDE.lua": {
+      "covered": 0,
+      "executable": 1499
+    },
+    "DragonUI_Options/Locales/enUS.lua": {
+      "covered": 0,
+      "executable": 1512
+    },
+    "DragonUI_Options/Locales/esES.lua": {
+      "covered": 0,
+      "executable": 1498
+    },
+    "DragonUI_Options/Locales/esMX.lua": {
+      "covered": 0,
+      "executable": 1498
+    },
+    "DragonUI_Options/Locales/frFR.lua": {
+      "covered": 0,
+      "executable": 1499
+    },
+    "DragonUI_Options/Locales/koKR.lua": {
+      "covered": 0,
+      "executable": 1499
+    },
+    "DragonUI_Options/Locales/ptBR.lua": {
+      "covered": 0,
+      "executable": 1499
+    },
+    "DragonUI_Options/Locales/ruRU.lua": {
+      "covered": 0,
+      "executable": 1499
+    },
+    "DragonUI_Options/Locales/zhCN.lua": {
+      "covered": 0,
+      "executable": 1499
+    },
+    "DragonUI_Options/Locales/zhTW.lua": {
+      "covered": 0,
+      "executable": 1499
+    },
+    "DragonUI_Options/core.lua": {
+      "covered": 0,
+      "executable": 61
+    },
+    "DragonUI_Options/libs/AceConfig-3.0/AceConfig-3.0.lua": {
+      "covered": 0,
+      "executable": 17
+    },
+    "DragonUI_Options/libs/AceConfig-3.0/AceConfigCmd-3.0/AceConfigCmd-3.0.lua": {
+      "covered": 0,
+      "executable": 437
+    },
+    "DragonUI_Options/libs/AceConfig-3.0/AceConfigDialog-3.0/AceConfigDialog-3.0.lua": {
+      "covered": 0,
+      "executable": 1128
+    },
+    "DragonUI_Options/libs/AceConfig-3.0/AceConfigRegistry-3.0/AceConfigRegistry-3.0.lua": {
+      "covered": 0,
+      "executable": 227
+    },
+    "DragonUI_Options/libs/AceGUI-3.0/AceGUI-3.0.lua": {
+      "covered": 0,
+      "executable": 392
+    },
+    "DragonUI_Options/libs/AceGUI-3.0/widgets/AceGUIContainer-BlizOptionsGroup.lua": {
+      "covered": 0,
+      "executable": 70
+    },
+    "DragonUI_Options/libs/AceGUI-3.0/widgets/AceGUIContainer-DropDownGroup.lua": {
+      "covered": 0,
+      "executable": 98
+    },
+    "DragonUI_Options/libs/AceGUI-3.0/widgets/AceGUIContainer-Frame.lua": {
+      "covered": 0,
+      "executable": 205
+    },
+    "DragonUI_Options/libs/AceGUI-3.0/widgets/AceGUIContainer-InlineGroup.lua": {
+      "covered": 0,
+      "executable": 59
+    },
+    "DragonUI_Options/libs/AceGUI-3.0/widgets/AceGUIContainer-ScrollFrame.lua": {
+      "covered": 0,
+      "executable": 132
+    },
+    "DragonUI_Options/libs/AceGUI-3.0/widgets/AceGUIContainer-SimpleGroup.lua": {
+      "covered": 0,
+      "executable": 34
+    },
+    "DragonUI_Options/libs/AceGUI-3.0/widgets/AceGUIContainer-TabGroup.lua": {
+      "covered": 0,
+      "executable": 213
+    },
+    "DragonUI_Options/libs/AceGUI-3.0/widgets/AceGUIContainer-TreeGroup.lua": {
+      "covered": 0,
+      "executable": 448
+    },
+    "DragonUI_Options/libs/AceGUI-3.0/widgets/AceGUIContainer-Window.lua": {
+      "covered": 0,
+      "executable": 237
+    },
+    "DragonUI_Options/libs/AceGUI-3.0/widgets/AceGUIWidget-Button.lua": {
+      "covered": 0,
+      "executable": 48
+    },
+    "DragonUI_Options/libs/AceGUI-3.0/widgets/AceGUIWidget-CheckBox.lua": {
+      "covered": 0,
+      "executable": 179
+    },
+    "DragonUI_Options/libs/AceGUI-3.0/widgets/AceGUIWidget-ColorPicker.lua": {
+      "covered": 0,
+      "executable": 109
+    },
+    "DragonUI_Options/libs/AceGUI-3.0/widgets/AceGUIWidget-DropDown-Items.lua": {
+      "covered": 0,
+      "executable": 258
+    },
+    "DragonUI_Options/libs/AceGUI-3.0/widgets/AceGUIWidget-DropDown.lua": {
+      "covered": 0,
+      "executable": 445
+    },
+    "DragonUI_Options/libs/AceGUI-3.0/widgets/AceGUIWidget-EditBox.lua": {
+      "covered": 0,
+      "executable": 146
+    },
+    "DragonUI_Options/libs/AceGUI-3.0/widgets/AceGUIWidget-Heading.lua": {
+      "covered": 0,
+      "executable": 46
+    },
+    "DragonUI_Options/libs/AceGUI-3.0/widgets/AceGUIWidget-Icon.lua": {
+      "covered": 0,
+      "executable": 84
+    },
+    "DragonUI_Options/libs/AceGUI-3.0/widgets/AceGUIWidget-InteractiveLabel.lua": {
+      "covered": 0,
+      "executable": 50
+    },
+    "DragonUI_Options/libs/AceGUI-3.0/widgets/AceGUIWidget-Keybinding.lua": {
+      "covered": 0,
+      "executable": 146
+    },
+    "DragonUI_Options/libs/AceGUI-3.0/widgets/AceGUIWidget-Label.lua": {
+      "covered": 0,
+      "executable": 90
+    },
+    "DragonUI_Options/libs/AceGUI-3.0/widgets/AceGUIWidget-MultiLineEditBox.lua": {
+      "covered": 0,
+      "executable": 194
+    },
+    "DragonUI_Options/libs/AceGUI-3.0/widgets/AceGUIWidget-Slider.lua": {
+      "covered": 0,
+      "executable": 180
+    },
+    "DragonUI_Options/libs/CallbackHandler-1.0/CallbackHandler-1.0.lua": {
+      "covered": 0,
+      "executable": 113
+    },
+    "DragonUI_Options/libs/LibStub/LibStub.lua": {
+      "covered": 0,
+      "executable": 22
+    },
+    "DragonUI_Options/panel/controls.lua": {
+      "covered": 0,
+      "executable": 1274
+    },
+    "DragonUI_Options/panel/panel.lua": {
+      "covered": 0,
+      "executable": 502
+    },
+    "DragonUI_Options/panel/search.lua": {
+      "covered": 0,
+      "executable": 461
+    },
+    "DragonUI_Options/panel/tab_actionbars.lua": {
+      "covered": 0,
+      "executable": 681
+    },
+    "DragonUI_Options/panel/tab_additionalbars.lua": {
+      "covered": 0,
+      "executable": 113
+    },
+    "DragonUI_Options/panel/tab_auras.lua": {
+      "covered": 0,
+      "executable": 766
+    },
+    "DragonUI_Options/panel/tab_bags.lua": {
+      "covered": 0,
+      "executable": 671
+    },
+    "DragonUI_Options/panel/tab_castbars.lua": {
+      "covered": 0,
+      "executable": 292
+    },
+    "DragonUI_Options/panel/tab_chat.lua": {
+      "covered": 0,
+      "executable": 106
+    },
+    "DragonUI_Options/panel/tab_enhancements.lua": {
+      "covered": 0,
+      "executable": 638
+    },
+    "DragonUI_Options/panel/tab_general.lua": {
+      "covered": 0,
+      "executable": 495
+    },
+    "DragonUI_Options/panel/tab_micromenu.lua": {
+      "covered": 0,
+      "executable": 133
+    },
+    "DragonUI_Options/panel/tab_minimap.lua": {
+      "covered": 0,
+      "executable": 408
+    },
+    "DragonUI_Options/panel/tab_modules.lua": {
+      "covered": 0,
+      "executable": 229
+    },
+    "DragonUI_Options/panel/tab_nameplates.lua": {
+      "covered": 0,
+      "executable": 1734
+    },
+    "DragonUI_Options/panel/tab_panels.lua": {
+      "covered": 172,
+      "executable": 539
+    },
+    "DragonUI_Options/panel/tab_profiles.lua": {
+      "covered": 0,
+      "executable": 174
+    },
+    "DragonUI_Options/panel/tab_questtracker.lua": {
+      "covered": 0,
+      "executable": 55
+    },
+    "DragonUI_Options/panel/tab_unitframes.lua": {
+      "covered": 0,
+      "executable": 683
+    },
+    "DragonUI_Options/panel/tab_xprepbars.lua": {
+      "covered": 0,
+      "executable": 149
+    },
+    "DragonUI_Options/panel/widget_rowlist.lua": {
+      "covered": 0,
+      "executable": 145
+    }
+  }
+}

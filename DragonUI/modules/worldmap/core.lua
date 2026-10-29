@@ -41,6 +41,14 @@ local function loadedReplacer()
     end
 end
 
+-- Before login no replacer has loaded yet, so this asks whether one is going to.
+local function replacerPending()
+    for _, candidate in ipairs(MAP_REPLACERS) do
+        local _, _, _, enabled, loadable = GetAddOnInfo(candidate)
+        if enabled and loadable then return true end
+    end
+end
+
 function WM:Config()
     return addon:GetModuleConfig("worldmap") or {}
 end
@@ -542,12 +550,14 @@ local function installHooks()
     end)
     hooksecurefunc("WorldMapFrame_SetOpacity", chromeAlpha)
 
+    local function relayout()
+        if WM:Config().maximized then WM.Layout(true) end
+    end
     local events = CreateFrame("Frame")
     events:RegisterEvent("DISPLAY_SIZE_CHANGED")
     events:RegisterEvent("UI_SCALE_CHANGED")
-    events:SetScript("OnEvent", function()
-        if WM:Config().maximized then WM.Layout(true) end
-    end)
+    events:SetScript("OnEvent", relayout)
+    addon.core.RegisterMessage(WM, "DRAGONUI_UI_SCALE_CHANGED", relayout)
 end
 
 -- ============================================================================
@@ -564,7 +574,8 @@ local function boot()
     -- OnInitialize refreshes every module at our own ADDON_LOADED, when addons after us are still
     -- unloaded and no map replacer would be seen. Only the CVars are worth doing that early.
     if not IsLoggedIn() then
-        prepareWindowedMode()
+        -- Mapster drops the map from UIPanelWindows, so a forced miniWorldMap breaks Blizzard's late toggle.
+        if not replacerPending() then prepareWindowedMode() end
         return
     end
     if InCombatLockdown() then

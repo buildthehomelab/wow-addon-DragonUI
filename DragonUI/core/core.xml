@@ -6,6 +6,7 @@
     <!-- Note: fonts.lua loads earlier via DragonUI.xml (before config.lua) -->
     
     <Script file="api.lua"/>
+    <Script file="reload.lua"/>
     <Script file="texture_warmup.lua"/>
     <Script file="modelview.lua"/>
     <Script file="editor_settings.lua"/>
@@ -14,6 +15,7 @@
     <Script file="commands.lua"/>
     <Script file="visibility_fade.lua"/>
     <Script file="combatlog_fix.lua"/>
+    <Script file="uiscale.lua"/>
     <!-- module_base.lua / movers.lua removed — EditableFrames + PositionPresets own layout -->
     
 </Ui>

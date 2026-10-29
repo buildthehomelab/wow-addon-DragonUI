@@ -67,6 +67,8 @@ local function BuildProfilesTab(scroll)
     end
 
     -- No module refresh is proven to re-read every key it uses, so a profile only switches on a reload.
+    -- Switch/create and copy share one action key: the latest choice replaces the pending operation,
+    -- so copies always target the current profile described by the UI, never a staged destination.
     local function StageProfile(name)
         if name == db:GetCurrentProfile() then
             addon.Reload.UnstageAction("profile")
@@ -147,7 +149,7 @@ local function BuildProfilesTab(scroll)
         getFunc = function() return nil end,
         setFunc = function(val)
             if val and val ~= db:GetCurrentProfile() then
-                addon.Reload.StageAction("copyprofile", function()
+                addon.Reload.StageAction("profile", function()
                     db:CopyProfile(val)
                     addon:Print(LO["Copied profile: "] .. val)
                 end)

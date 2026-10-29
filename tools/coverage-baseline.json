@@ -1,9 +1,9 @@
 {
   "method": "Lua 5.1 line hook / luac executable source lines across all nested prototypes",
-  "tests_passed": 9,
-  "covered_lines": 5069,
-  "executable_lines": 151335,
-  "line_percent": 3.35,
+  "tests_passed": 10,
+  "covered_lines": 5382,
+  "executable_lines": 151336,
+  "line_percent": 3.56,
   "branch_coverage": "unmeasured",
   "files": {
     "DragonUI/Locales/deDE.lua": {
@@ -87,7 +87,7 @@
       "executable": 889
     },
     "DragonUI/core/reload.lua": {
-      "covered": 115,
+      "covered": 125,
       "executable": 142
     },
     "DragonUI/core/texture_warmup.lua": {
@@ -147,7 +147,7 @@
       "executable": 125
     },
     "DragonUI/libs/AceDB-3.0/AceDB-3.0.lua": {
-      "covered": 0,
+      "covered": 191,
       "executable": 353
     },
     "DragonUI/libs/AceEvent-3.0/AceEvent-3.0.lua": {
@@ -1211,8 +1211,8 @@
       "executable": 1499
     },
     "DragonUI_Options/core.lua": {
-      "covered": 0,
-      "executable": 61
+      "covered": 34,
+      "executable": 62
     },
     "DragonUI_Options/libs/AceConfig-3.0/AceConfig-3.0.lua": {
       "covered": 0,
@@ -1395,7 +1395,7 @@
       "executable": 539
     },
     "DragonUI_Options/panel/tab_profiles.lua": {
-      "covered": 0,
+      "covered": 78,
       "executable": 174
     },
     "DragonUI_Options/panel/tab_questtracker.lua": {

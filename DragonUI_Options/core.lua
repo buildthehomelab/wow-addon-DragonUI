@@ -40,6 +40,9 @@ StaticPopupDialogs["DRAGONUI_DELETE_PROFILE"] = {
     OnAccept = function(self)
         local profileName = self.data
         if profileName and addon.db then
+            -- A staged switch could recreate the deleted profile; a staged copy could read a missing source.
+            -- Keep unrelated staged settings, but require a fresh profile choice after confirming deletion.
+            addon.Reload.UnstageAction("profile")
             addon.db:DeleteProfile(profileName, true)
             -- Left set, the next new character would recreate it empty.
             if addon.GetDefaultProfileKey and addon:GetDefaultProfileKey() == profileName then

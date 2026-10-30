@@ -218,13 +218,17 @@ end
 
 -- Same strip as the Social window: retail tabs chained off the drawn window's bottom-left. With
 -- `onTop` ({ anchor, x, y }) they stand nose up on that frame's top-left instead, like the Social
--- window's Friends / Ignore tabs on their list.
+-- window's Friends / Ignore tabs on their list. `count` may be a function, for a strip another
+-- addon can grow after the skin is built.
 local function dressTabs(host, prefix, count, onTop)
     local CP = addon.CharacterPanel
     if not (CP and CP.ReskinTab) then return end
+    local function tabCount()
+        return type(count) == "function" and count() or count
+    end
     local function relayout()
         local prev
-        for i = 1, count do
+        for i = 1, tabCount() do
             local tab = _G[prefix .. i]
             if tab then
                 tab._duiRelayout = relayout
@@ -247,7 +251,7 @@ local function dressTabs(host, prefix, count, onTop)
             end
         end
     end
-    for i = 1, count do
+    for i = 1, tabCount() do
         local tab = _G[prefix .. i]
         if tab and not tab._duiStockTabHooked then
             tab._duiStockTabHooked = true
@@ -395,42 +399,48 @@ local function lfdCloseButton(window)
 end
 
 -- Stock the roles start 65 in with gaps of 25, 23 and 32: centred on the content with even gaps.
-local function placeRoles(window, centre)
+local function placeRoles(window, centre, prefix, roles, gap)
     local buttons, total = {}, 0
-    for _, role in ipairs(LFD_ROLES) do
-        local button = _G["LFDQueueFrameRoleButton" .. role]
+    for _, role in ipairs(roles or LFD_ROLES) do
+        local button = _G[(prefix or "LFDQueueFrameRoleButton") .. role]
         if button then
             buttons[#buttons + 1] = button
             total = total + button:GetWidth()
         end
     end
     if #buttons == 0 then return end
-    total = total + LFD_ROLE_GAP * (#buttons - 1)
+    gap = gap or LFD_ROLE_GAP
+    total = total + gap * (#buttons - 1)
     for i, button in ipairs(buttons) do
         button:ClearAllPoints()
         if i == 1 then
             button:SetPoint("TOPLEFT", window, "TOPLEFT", centre - total / 2, LFD_ROLE_TOP)
         else
-            button:SetPoint("LEFT", buttons[i - 1], "RIGHT", LFD_ROLE_GAP, 0)
+            button:SetPoint("LEFT", buttons[i - 1], "RIGHT", gap, 0)
         end
     end
 end
 
 -- Stock the label hung 115 wide off the menu's transparent left and the menu ran onto the right
--- rail; now "Type:" and the menu's art are one row, centred.
-local function placeTypeRow(window, centre)
-    local menu, label = _G.LFDQueueFrameTypeDropDown, _G.LFDQueueFrameTypeDropDownName
+-- rail; now "Type:" and the menu's art are one row, centred. `frameW` is the menu frame's width,
+-- its UIDropDownMenu_SetWidth plus 50.
+local function placeDropDownRow(window, centre, menu, label, frameW, y)
     if not menu then return end
     local labelW = label and label:GetStringWidth() or 0
-    local artW = LFD_TYPE_FRAME_W - LFD_TYPE_ART_LEFT - LFD_TYPE_ART_RIGHT
+    local artW = frameW - LFD_TYPE_ART_LEFT - LFD_TYPE_ART_RIGHT
     local rowLeft = centre - (labelW + LFD_TYPE_LABEL_GAP + artW) / 2
     menu:ClearAllPoints()
     menu:SetPoint("LEFT", window, "TOPLEFT",
-        rowLeft + labelW + LFD_TYPE_LABEL_GAP - LFD_TYPE_ART_LEFT, LFD_TYPE_Y)
+        rowLeft + labelW + LFD_TYPE_LABEL_GAP - LFD_TYPE_ART_LEFT, y)
     if label then
         label:ClearAllPoints()
         label:SetPoint("RIGHT", menu, "LEFT", LFD_TYPE_ART_LEFT - LFD_TYPE_LABEL_GAP, 2)
     end
+end
+
+local function placeTypeRow(window, centre)
+    placeDropDownRow(window, centre, _G.LFDQueueFrameTypeDropDown, _G.LFDQueueFrameTypeDropDownName,
+        LFD_TYPE_FRAME_W, LFD_TYPE_Y)
 end
 
 local function trimSpecificRows()
@@ -515,6 +525,195 @@ local function buildLFD()
             cover:ClearAllPoints()
             cover:SetAllPoints(inset)
         end
+    end
+end
+
+-- ============================================================================
+-- RAID BROWSER (355x440 like the Dungeon Finder, same art rect; two pages and a growable tab strip)
+-- ============================================================================
+
+-- The 48 role buttons' 80 glows hang 16 past each side: 40 between buttons keeps the glows apart.
+local LFR_ROLES = { "Tank", "Healer", "DPS" }
+local LFR_ROLE_GAP = 40
+-- Raid list: the role glows end at -112, the list inset starts the seat's gap under them. The
+-- comment box (313x41) gets its own inset over the button row, the list takes the rest.
+local LFR_LIST_TOP = -115
+local LFR_COMMENT_H = 41
+-- The raid rows' faux scroll frame spans them 2 over and under.
+local LFR_FAUX_PAD = 2
+-- Browse: the Browsing row under the band, then one inset holding the column headers (24 tall)
+-- over the 19 member rows (298 wide; their faux scroll frame ends 5 past them).
+local LFR_BROWSE_Y = -50 -- centre of the Browsing row
+local LFR_BROWSE_MENU_W = 190 -- LFRBrowseFrameRaidDropDown_SetUp sizes the menu 140
+local LFR_BROWSE_TOP = -68
+local LFR_HEADER_H = 24
+local LFR_BROWSE_ROW_W, LFR_BROWSE_FAUX_RIGHT = 298, 5
+local LFR_TAB_PREFIX = "LFRParentFrameTab"
+
+-- Every tab that exists, the stock two plus any another addon adds later (RaidFinder's third).
+local function lfrTabCount()
+    local count = 0
+    while _G[LFR_TAB_PREFIX .. (count + 1)] do
+        count = count + 1
+    end
+    local window = _G.LFRParentFrame
+    return math.max(count, window and window.numTabs or 0)
+end
+
+-- UIPanelButtonTemplate2 keeps its stone in named Left/Middle/Right regions its scripts re-texture
+-- on every click, which SkinRedButton's state-texture strip never reaches.
+local function skinPanelButton2(button)
+    if not (button and addon.SkinRedButton) or button._duiRedButton then return end
+    local name = button:GetName()
+    if name then
+        hideNamed({ name .. "Left", name .. "Middle", name .. "Right" })
+    end
+    addon.SkinRedButton(button)
+end
+
+local function trimRaidRows()
+    local scroll = _G.LFRQueueFrameSpecificListScrollFrame
+    local count = _G.NUM_LFR_CHOICE_BUTTONS or 14
+    for i = 1, count do
+        local row = _G["LFRQueueFrameSpecificListButton" .. i]
+        if row then
+            row:SetWidth((scroll and scroll:IsShown() and 295 or 315) - 2 * LFD_ROW_TRIM)
+        end
+    end
+end
+
+-- Choose Raid: roles, the raid list inset, the comment inset, List Me / Set Comment on the seats.
+-- The insets are the page's own, so they hide with it and never sit under another tab's panel.
+local function buildLFRQueuePage(window, host, left, right, bottom, centre)
+    local page = _G.LFRQueueFrame
+    if not page then return end
+    placeRoles(window, centre, "LFRQueueFrameRoleButton", LFR_ROLES, LFR_ROLE_GAP)
+
+    local seat = addon.WindowSeat
+    local commentTop = -(window:GetHeight() - bottom - LFR_COMMENT_H - 2 * LFD_PAD)
+    local listBottom = bottom + LFR_COMMENT_H + 2 * LFD_PAD + seat.gap
+    local list = addInset(page, { left, LFR_LIST_TOP, right, listBottom, topLeft = window, bottomRight = window })
+    local comment = addInset(page, { left, commentTop, right, bottom, topLeft = window, bottomRight = window })
+
+    local first = _G.LFRQueueFrameSpecificListButton1
+    if first then
+        first:ClearAllPoints()
+        first:SetPoint("TOPLEFT", window, "TOPLEFT", left + LFD_PAD, LFR_LIST_TOP - LFD_PAD - LFR_FAUX_PAD)
+    end
+    if _G.LFRQueueFrameSpecificList_Update then
+        hooksecurefunc("LFRQueueFrameSpecificList_Update", trimRaidRows)
+    end
+    trimRaidRows()
+    if _G.LFRQueueFrameSpecificListScrollFrame then
+        -- Same as the Dungeon Finder's list: the frame's right is the trimmed 295 rows' plus 1.
+        local barLeft = right - LFD_PAD - LFD_BAR_W
+        local listRight = left + LFD_PAD + 295 - 2 * LFD_ROW_TRIM + 1
+        dressScrollBar("LFRQueueFrameSpecificListScrollFrame", window:GetWidth() + barLeft - listRight)
+    end
+
+    local box = _G.LFRQueueFrameComment
+    if box then
+        box:ClearAllPoints()
+        box:SetPoint("TOPLEFT", window, "TOPLEFT", left + LFD_PAD, commentTop - LFD_PAD)
+    end
+
+    local find, accept = _G.LFRQueueFrameFindGroupButton, _G.LFRQueueFrameAcceptCommentButton
+    if find then
+        find:ClearAllPoints()
+        find:SetPoint("BOTTOMLEFT", host, "BOTTOMLEFT", seat.buttonLeft, seat.buttonBottom)
+    end
+    if accept then
+        accept:ClearAllPoints()
+        accept:SetPoint("BOTTOMRIGHT", host, "BOTTOMRIGHT", seat.buttonRight, seat.buttonBottom)
+    end
+    skinPanelButton2(find)
+    skinPanelButton2(accept)
+
+    -- The "in the Dungeon Finder queue" cover takes mouse input over the list and the comment.
+    local cover = _G.LFRQueueFrameNoLFRWhileLFD
+    if cover then
+        cover:ClearAllPoints()
+        cover:SetPoint("TOPLEFT", list, "TOPLEFT", 0, 0)
+        cover:SetPoint("BOTTOMRIGHT", comment, "BOTTOMRIGHT", 0, 0)
+    end
+    skinPanelButton2(_G.LFRQueueFrameNoLFRWhileLFDLeaveQueueButton)
+end
+
+-- Browse: the Browsing menu centred under the band, headers and rows in one inset, and the three
+-- buttons spread across the seats (stock they ran 323 wide, 2 past the 321 between them).
+local function buildLFRBrowsePage(window, host, left, right, bottom, centre)
+    local page = _G.LFRBrowseFrame
+    if not page then return end
+    placeDropDownRow(window, centre, _G.LFRBrowseFrameRaidDropDown, _G.LFRBrowseFrameRaidDropDownName,
+        LFR_BROWSE_MENU_W, LFR_BROWSE_Y)
+    addInset(page, { left, LFR_BROWSE_TOP, right, bottom, topLeft = window, bottomRight = window })
+
+    local rowLeft = left + LFD_PAD
+    local header = _G.LFRBrowseFrameColumnHeader1
+    if header then
+        header:ClearAllPoints()
+        header:SetPoint("TOPLEFT", window, "TOPLEFT", rowLeft, LFR_BROWSE_TOP - LFD_PAD)
+    end
+    local first = _G.LFRBrowseFrameListButton1
+    if first then
+        first:ClearAllPoints()
+        first:SetPoint("TOPLEFT", window, "TOPLEFT", rowLeft, LFR_BROWSE_TOP - LFD_PAD - LFR_HEADER_H)
+    end
+    local barLeft = right - LFD_PAD - LFD_BAR_W
+    local scrollRight = rowLeft + LFR_BROWSE_ROW_W + LFR_BROWSE_FAUX_RIGHT
+    dressScrollBar("LFRBrowseFrameListScrollFrame", window:GetWidth() + barLeft - scrollRight)
+
+    local seat = addon.WindowSeat
+    local send = _G.LFRBrowseFrameSendMessageButton
+    local invite = _G.LFRBrowseFrameInviteButton
+    local refresh = _G.LFRBrowseFrameRefreshButton
+    if send and invite and refresh then
+        local span = window:GetWidth() - LFD_RECT[1] + LFD_RECT[3] - seat.buttonLeft + seat.buttonRight
+        local gap = (span - send:GetWidth() - invite:GetWidth() - refresh:GetWidth()) / 2
+        send:ClearAllPoints()
+        send:SetPoint("BOTTOMLEFT", host, "BOTTOMLEFT", seat.buttonLeft, seat.buttonBottom)
+        invite:ClearAllPoints()
+        invite:SetPoint("LEFT", send, "RIGHT", gap, 0)
+        refresh:ClearAllPoints()
+        refresh:SetPoint("BOTTOMRIGHT", host, "BOTTOMRIGHT", seat.buttonRight, seat.buttonBottom)
+    end
+    for _, button in ipairs({ send, invite, refresh }) do
+        skinPanelButton2(button)
+    end
+end
+
+local function buildLFR()
+    local window = _G.LFRParentFrame
+    if not window or window._duiStockSkinned then return end
+    window._duiStockSkinned = true
+
+    hideNamed({ "LFRQueueFrameLayout", "LFRBrowseFrameLayout", "LFRParentFrameIcon" })
+    -- Same unnamed close button as the Dungeon Finder.
+    local host = skinWindow(window, {
+        rect = LFD_RECT,
+        hit = { 12, 6, 12, 2 },
+        close = lfdCloseButton(window),
+    })
+    -- Each page's own title, both re-seated in the one title band.
+    dressTitle(host, _G.LFRQueueFrameTitleText)
+    dressTitle(host, _G.LFRBrowseFrameTitleText)
+
+    local left, right, bottom = lfdContent()
+    local centre = (left + window:GetWidth() + right) / 2
+    buildLFRQueuePage(window, host, left, right, bottom, centre)
+    buildLFRBrowsePage(window, host, left, right, bottom, centre)
+
+    -- The strip re-chains whenever it grows (RaidFinder adds its tab with PanelTemplates_SetNumTabs,
+    -- before or after this build) and on every open, after anything that re-anchored a tab.
+    local function relayoutTabs()
+        dressTabs(host, LFR_TAB_PREFIX, lfrTabCount)
+    end
+    relayoutTabs()
+    window:HookScript("OnShow", relayoutTabs)
+    if _G.PanelTemplates_SetNumTabs then
+        hooksecurefunc("PanelTemplates_SetNumTabs", function(frame)
+            if frame == window then relayoutTabs() end
+        end)
     end
 end
 
@@ -1212,6 +1411,7 @@ end
 local BUILDERS = {
     { frame = "QuestLogFrame", build = buildQuestLog },
     { frame = "LFDParentFrame", build = buildLFD },
+    { frame = "LFRParentFrame", build = buildLFR },
     { frame = "PVPParentFrame", build = buildPvP },
     { frame = "AchievementFrame", build = buildAchievements, atLoad = true },
     { frame = "GameMenuFrame", build = buildGameMenu },

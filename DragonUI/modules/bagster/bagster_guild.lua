@@ -7,8 +7,25 @@ local mod = addon.BagsterModule
 local format = string.format
 local floor, ceil, min, max = math.floor, math.ceil, math.min, math.max
 
-local MAX_SLOTS = MAX_GUILDBANK_SLOTS_PER_TAB or 98
 local MAX_TABS = MAX_GUILDBANK_TABS or 6
+local COLS = 14
+
+-- Slots per tab: 98 on a stock realm. A realm with bigger tabs (Evermore's edited Wow.exe holds up to
+-- 196) says so each time the bank opens, with an addon whisper to the player: "EvermoreGuildBank",
+-- "slots:<n>". The window usually opens just before it arrives, so the realm's last count is kept
+-- (mod.DB.guild.realmSlots, by realm name) and used until the whisper says otherwise.
+local STOCK_SLOTS = MAX_GUILDBANK_SLOTS_PER_TAB or 98
+local REALM_MAX_SLOTS = 196
+local heardSlots -- this session's count from the realm
+
+local function SavedSlots()
+    local saved = mod.DB and mod.DB.guild and mod.DB.guild.realmSlots
+    return saved and saved[GetRealmName()]
+end
+
+function addon.GetGuildBankSlots()
+    return heardSlots or SavedSlots() or STOCK_SLOTS
+end
 
 local QUEST_ITEM_SEARCH = format("t:%s|%s", select(12, GetAuctionItemClasses()) or "Quest", "quest")
 local LOG_TIME = GUILD_BANK_LOG_TIME or " |cff009999(%s)|r"
@@ -185,7 +202,7 @@ do
 end
 
 -- ============================================================================
--- GUILD ITEM FRAME (98 fixed slots of the current tab)
+-- GUILD ITEM FRAME (the current tab's slots, 14 to a row)
 -- ============================================================================
 
 do
@@ -196,10 +213,7 @@ do
         local f = self:Bind(CreateFrame("Frame", nil, parent))
         f.items = {}
         f.tab = 1
-
-        for slot = 1, MAX_SLOTS do
-            f.items[slot] = mod.GuildItemSlot:New(f, slot)
-        end
+        f:SetSlotCount(addon.GetGuildBankSlots())
 
         -- One-frame layout throttle: bank queries burst GUILDBANKBAGSLOTS_CHANGED
         f.updater = CreateFrame("Frame", nil, f)
@@ -214,6 +228,20 @@ do
             self:RequestLayout()
         end)
         return f
+    end
+
+    -- Buttons are made as the count grows and only hidden when it shrinks.
+    function GuildItemFrame:SetSlotCount(count)
+        self.count = count
+        for slot = #self.items + 1, count do
+            self.items[slot] = mod.GuildItemSlot:New(self, slot)
+            self.items[slot]:Update()
+        end
+        self:RequestLayout()
+    end
+
+    function GuildItemFrame:GetRows()
+        return ceil(self.count / COLS)
     end
 
     function GuildItemFrame:SetTab(tab)
@@ -246,7 +274,9 @@ do
     end
 
     function GuildItemFrame:RequestLayout()
-        self.updater:Show()
+        if self.updater then
+            self.updater:Show()
+        end
     end
 
     function GuildItemFrame:Layout()
@@ -257,17 +287,21 @@ do
         local spacing = (cfg and cfg.item_spacing) or 2
         local size = 36 + spacing * 2
 
-        -- Fixed 14x7 grid: icons grow with the frame (1.5x hard cap, resize is clamped there too)
-        local cols, rows = 14, 7
-        local scale = min(width / (cols * size), height / (rows * size), 1.5)
+        -- 14 to a row (7 rows for 98 slots): icons grow with the frame (1.5x hard cap, resize is clamped there too)
+        local rows = self:GetRows()
+        local scale = min(width / (COLS * size), height / (rows * size), 1.5)
 
         for i, item in ipairs(self.items) do
-            local col = (i - 1) % cols
-            local row = ceil(i / cols) - 1
-            item:ClearAllPoints()
-            item:SetScale(scale)
-            item:SetPoint("TOPLEFT", self, "TOPLEFT", size * col + spacing, -(size * row + spacing))
-            item:Show()
+            if i > self.count then
+                item:Hide()
+            else
+                local col = (i - 1) % COLS
+                local row = ceil(i / COLS) - 1
+                item:ClearAllPoints()
+                item:SetScale(scale)
+                item:SetPoint("TOPLEFT", self, "TOPLEFT", size * col + spacing, -(size * row + spacing))
+                item:Show()
+            end
         end
     end
 end
@@ -760,11 +794,11 @@ do
     end
 
     function GuildFrame:UpdateItemFrameSize()
-        -- Clamp resizing to where the 14x7 grid hits its 1.5x icon cap
+        -- Clamp resizing to where the grid hits its 1.5x icon cap
         local cfg = mod.GetModuleConfig()
         local spacing = (cfg and cfg.item_spacing) or 2
         local size = (36 + spacing * 2) * 1.5
-        self:SetMaxResize(14 * size + 34, 7 * size + 96)
+        self:SetMaxResize(COLS * size + 34, self.itemFrame:GetRows() * size + 96)
 
         self.itemFrame:SetWidth(self:GetWidth() - 30)
         self.itemFrame:SetHeight(self:GetHeight() - 92)
@@ -774,6 +808,27 @@ do
         self.infoBox:SetWidth(self:GetWidth() - 44)
         self.infoBox:SetHeight(self:GetHeight() - 132)
         self.infoEdit:SetWidth(self:GetWidth() - 90)
+    end
+
+    -- The realm's tab size arrived.
+    function GuildFrame:SetSlotCount(count)
+        self.itemFrame:SetSlotCount(count)
+        self:FitRows()
+    end
+
+    -- A saved height is for the rows it was last sized with (sets.rows; none = the stock 7). For
+    -- another number of rows, make the window as tall as its width needs for the icons it has now
+    -- (not taller than the screen).
+    function GuildFrame:FitRows()
+        local rows = self.itemFrame:GetRows()
+        if (self.sets.rows or 7) ~= rows then
+            local cfg = mod.GetModuleConfig()
+            local size = 36 + ((cfg and cfg.item_spacing) or 2) * 2
+            local scale = min((self:GetWidth() - 30) / (COLS * size), 1.5)
+            self:SetHeight(max(350, min(rows * size * scale + 92, UIParent:GetHeight() - 40)))
+            self:UpdateItemFrameSize()
+        end
+        self.sets.rows = rows
     end
 
     function GuildFrame:SetMode(mode)
@@ -965,6 +1020,7 @@ do
         self:UpdateTabs()
         self.itemFrame:UpdateAll()
         self.moneyFrame:Update()
+        self:FitRows()
         self:UpdateItemFrameSize()
         self:SetMode(self.mode or "bank")
     end
@@ -1011,6 +1067,25 @@ do
             mod.ShowGuildFrame()
         else
             mod.HideGuildFrame()
+        end
+    end)
+end
+
+do
+    local listener = CreateFrame("Frame")
+    listener:RegisterEvent("CHAT_MSG_ADDON")
+    listener:SetScript("OnEvent", function(_, _, prefix, message, channel, sender)
+        if prefix ~= "EvermoreGuildBank" or channel ~= "WHISPER" or sender ~= UnitName("player") then return end
+        local count = tonumber(message:match("^slots:(%d+)$"))
+        if not count or count < STOCK_SLOTS or count > REALM_MAX_SLOTS then return end
+        local changed = count ~= addon.GetGuildBankSlots()
+        heardSlots = count
+        if mod.DB and mod.DB.guild then
+            mod.DB.guild.realmSlots = mod.DB.guild.realmSlots or {}
+            mod.DB.guild.realmSlots[GetRealmName()] = count ~= STOCK_SLOTS and count or nil
+        end
+        if changed and mod.guildFrame then
+            mod.guildFrame:SetSlotCount(count)
         end
     end)
 end

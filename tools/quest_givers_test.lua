@@ -50,6 +50,8 @@ local function newRegion()
     function region:SetDesaturated(value) self.desaturated = value and true or false end
     function region:SetAtlasTexture(name) self.texture = "atlas:" .. name end
     function region:CreateTexture() return newRegion() end
+    function region:CreateFontString() return newRegion() end
+    function region:SetText(text) self.text = text end
     return region
 end
 
@@ -89,7 +91,7 @@ WorldMapButton = newRegion()
 WorldMapButton:SetSize(1000, 667)
 
 local WM = addon.WorldMap
-local config = { questGivers = true, trivialQuests = false }
+local config = { questGivers = true, trivialQuests = false, groupQuestGivers = false }
 function WM:Config() return config end
 function WM.OnTerrainFloor() return true end
 WM.canvasScale = 1
@@ -275,3 +277,56 @@ mapArea = 0
 WM.RefreshMapPins()
 assert(#sent == before)
 print("ok - toggle off, continents")
+
+-- 8. Givers close together share a pin; the same giver twice is one name; zooming in parts them.
+mapArea = 31
+questCount = 7
+event("QUEST_LOG_UPDATE")
+advance(0.5)
+req = sent[#sent]:match("^A:(%d+):30$")
+assert(req, tostring(sent[#sent]))
+receive("AR:" .. req .. ":30:5")
+receive("AD:" .. req .. ":G,0,5000,5000,Grunt Maug;Q,0,8542,60,0,Tin Bars;Q,0,8543,60,1,More Tin Bars;"
+    .. "G,1,5010,5010,Grunt Maug;Q,1,8542,60,0,Tin Bars;Q,1,8543,60,1,More Tin Bars")
+receive("AD:" .. req .. ":G,2,5200,5000,Miner Cromwell;Q,2,8532,60,0,Copper Bars;"
+    .. "G,3,1000,1000,Far Away;Q,3,1,60,0,Alone;G,4,9000,9000,Blue Only;Q,4,2,60,1,Again")
+receive("AE:" .. req)
+advance(0.5)
+assert(#shownPins() == 5, "ungrouped: " .. #shownPins())
+
+config.groupQuestGivers = true
+WM.RefreshMapPins()
+pins = shownPins()
+assert(#pins == 3, "grouped: " .. #pins)
+byName = {}
+for _, pin in ipairs(pins) do byName[pin.name] = pin end
+local group = byName["2 Quest Givers"]
+assert(group and group.count.shown and group.count.text == 2)
+assert(not byName["Far Away"].count.shown and byName["Far Away"].quests)
+assert(group.icon.texture:match("AvailableQuestIcon"))
+group.scripts.OnEnter(group)
+assert(#GameTooltip.lines == 6, "tooltip lines: " .. #GameTooltip.lines)
+assert(GameTooltip.lines[2] == "Grunt Maug" and GameTooltip.lines[5] == "Miner Cromwell")
+assert(GameTooltip.lines[3]:match("Tin Bars") and GameTooltip.lines[4]:match("More Tin Bars"))
+print("ok - nearby givers share a pin, the same giver twice listed once")
+
+config.repeatableQuests = false
+WM.RefreshMapPins()
+pins = shownPins()
+assert(#pins == 2, "repeatables off: " .. #pins)
+for _, pin in ipairs(pins) do
+    if pin.givers then assert(#pin.givers[1].shown == 1 and pin.givers[1].shown[1].id == 8542) end
+end
+config.repeatableQuests = true
+print("ok - repeatable toggle")
+
+WM.canvasScale = 4
+WM.RefreshMapPins()
+pins = shownPins()
+assert(#pins == 4, "zoomed in: " .. #pins)
+byName = {}
+for _, pin in ipairs(pins) do byName[pin.name] = pin end
+assert(byName["Grunt Maug"] and #byName["Grunt Maug"].quests == 2 and byName["Miner Cromwell"])
+assert(not byName["Grunt Maug"].count.shown)
+WM.canvasScale = 1
+print("ok - zooming in splits a shared pin")

@@ -1685,6 +1685,10 @@ L["Show Quest Givers"] = "顯示任務給予者"
 L["Show quest giver pins on zone maps for quests you can take now. Needs the server's mod-quest-map."] = "在區域地圖上顯示你現在可以接取任務的任務給予者。需要伺服器安裝 mod-quest-map。"
 L["Show Trivial Quests"] = "顯示低等級任務"
 L["Also show quest givers whose quests are far below your level."] = "同時顯示任務遠低於你等級的任務給予者。"
+L["Show Repeatable Quests"] = "顯示可重複任務"
+L["Also show quest givers whose quests are all dailies or repeatable turn-ins (blue pins)."] = "同時顯示只有每日或可重複任務的任務給予者（藍色標記）。"
+L["Group Nearby Quest Givers"] = "合併相鄰的任務給予者"
+L["Quest givers standing close together share one pin with a count. Zoom in to split them."] = "相鄰的任務給予者合併為一個帶數量的標記。放大地圖即可分開。"
 
 -- ============================================================================
 -- LOW HP ALERT MODULE (added by DragonUI)

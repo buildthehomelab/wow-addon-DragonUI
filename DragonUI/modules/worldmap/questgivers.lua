@@ -71,15 +71,6 @@ local function hello()
     end)
 end
 
--- What a pin needs, worked out once per answer: the quests it lists with trivial ones and without.
-local function finishGiver(giver)
-    local normal = {}
-    for _, quest in ipairs(giver.quests) do
-        if not quest.trivial then normal[#normal + 1] = quest end
-    end
-    giver.normal = normal
-end
-
 local function onRows(p, text)
     for row in text:gmatch("[^;]+") do
         local n, x, y, name = row:match("^G,(%d+),(%d+),(%d+),(.*)$")
@@ -126,7 +117,6 @@ local function onMessage(message)
     elseif code == "AE" then
         pending[req] = nil
         if asked[p.area] == req then asked[p.area] = nil end
-        for _, giver in ipairs(p.givers) do finishGiver(giver) end
         cache[p.area] = { givers = p.givers, generation = p.generation, time = GetTime() }
         refreshShownMap()
     elseif code == "ERR" then

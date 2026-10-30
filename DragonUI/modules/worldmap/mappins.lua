@@ -11,6 +11,10 @@ local FLIGHT_SIZE = 18
 local GRAVEYARD_W, GRAVEYARD_H = 12, 16
 local INN_SIZE, HOME_SIZE = 18, 24
 local QUEST_SIZE = 18
+-- Givers whose pins would land closer than this share one; zooming in pulls them apart again.
+local GROUP_RADIUS = QUEST_SIZE * 2
+-- A shared pin's tooltip names this many givers, then says how many more zooming in would show.
+local GROUP_TOOLTIP_GIVERS = 8
 local QUEST_ICON = "Interface\\GossipFrame\\AvailableQuestIcon"
 local DAILY_ICON = "Interface\\GossipFrame\\DailyQuestIcon"
 local HEARTHSTONE = "|TInterface\\Icons\\INV_Misc_Rune_01:14:14|t "
@@ -51,6 +55,12 @@ local pool = {}
 local pendingFlash, pendingUntil
 local innByNpc, binder
 
+local function addQuestLine(quest)
+    local color = GetQuestDifficultyColor(quest.level)
+    local icon = quest.repeatable and DAILY_ICON or QUEST_ICON
+    GameTooltip:AddLine(format("|T%s:14:14|t [%d] %s", icon, quest.level, quest.title), color.r, color.g, color.b)
+end
+
 local function acquire(index)
     local pin = pool[index]
     if pin then return pin end
@@ -64,15 +74,22 @@ local function acquire(index)
     pin.glow:SetBlendMode("ADD")
     pin.glow:SetPoint("CENTER", pin, "CENTER", 0, 0)
     pin.glow:Hide()
+    pin.count = pin:CreateFontString(nil, "OVERLAY", "NumberFontNormalSmall")
+    pin.count:SetPoint("BOTTOMRIGHT", pin, "BOTTOMRIGHT", 4, -2)
+    pin.count:Hide()
     pin:SetScript("OnEnter", function(self)
         GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
         GameTooltip:SetText(self.name, 1, 1, 1)
         if self.kind then GameTooltip:AddLine(self.kind, 0.8, 0.8, 0.8) end
         if self.note then GameTooltip:AddLine(self.note, 0.1, 1, 0.1) end
-        for _, quest in ipairs(self.quests or EMPTY) do
-            local color = GetQuestDifficultyColor(quest.level)
-            local icon = quest.repeatable and DAILY_ICON or QUEST_ICON
-            GameTooltip:AddLine(format("|T%s:14:14|t [%d] %s", icon, quest.level, quest.title), color.r, color.g, color.b)
+        for _, quest in ipairs(self.quests or EMPTY) do addQuestLine(quest) end
+        local givers = self.givers or EMPTY
+        for i = 1, math.min(#givers, GROUP_TOOLTIP_GIVERS) do
+            GameTooltip:AddLine(givers[i].name, 1, 0.82, 0)
+            for _, quest in ipairs(givers[i].shown) do addQuestLine(quest) end
+        end
+        if #givers > GROUP_TOOLTIP_GIVERS then
+            GameTooltip:AddLine(format(L["%d more, zoom in to see them"], #givers - GROUP_TOOLTIP_GIVERS), 0.8, 0.8, 0.8)
         end
         GameTooltip:Show()
     end)
@@ -104,10 +121,18 @@ local function styleFlightPoint(pin, entry)
 end
 
 -- Blue when every quest it lists is a daily or repeatable, grey when every one is far below you.
-local function styleQuestGiver(pin, giver)
-    pin.name, pin.kind, pin.quests = giver.name, nil, giver.shown
+-- A pin several givers share is named for how many, with the count on it and each in its tooltip.
+local function styleQuestGiver(pin, entry)
+    pin.kind = nil
+    if entry.givers then
+        pin.name, pin.givers = format(L["%d Quest Givers"], #entry.givers), entry.givers
+        pin.count:SetText(#entry.givers)
+        pin.count:Show()
+    else
+        pin.name, pin.quests = entry.name, entry.shown
+    end
     local repeatable, trivial = true, true
-    for _, quest in ipairs(giver.shown) do
+    for _, quest in ipairs(entry.shown) do
         repeatable = repeatable and quest.repeatable
         trivial = trivial and quest.trivial
     end
@@ -115,6 +140,65 @@ local function styleQuestGiver(pin, giver)
     pin.icon:SetTexCoord(0, 1, 0, 1)
     pin.icon:SetDesaturated(trivial)
     pin:SetSize(QUEST_SIZE, QUEST_SIZE)
+end
+
+local function questsShown(giver, trivial, repeatable)
+    local shown = {}
+    for _, quest in ipairs(giver.quests) do
+        if (trivial or not quest.trivial) and (repeatable or not quest.repeatable) then shown[#shown + 1] = quest end
+    end
+    return shown
+end
+
+-- The same giver twice (an event spawn beside its standing one) is one name in the list.
+local function joinGiver(group, giver)
+    for _, other in ipairs(group.givers) do
+        if other.name == giver.name then
+            local known = {}
+            for _, quest in ipairs(other.shown) do known[quest.id] = true end
+            for _, quest in ipairs(giver.shown) do
+                if not known[quest.id] then other.shown[#other.shown + 1] = quest end
+            end
+            return
+        end
+    end
+    group.givers[#group.givers + 1] = giver
+end
+
+-- Each giver joins the first pin within reach, which then sits at the middle of its givers.
+local function groupGivers(givers)
+    local groups = {}
+    for _, giver in ipairs(givers) do
+        local home
+        for _, group in ipairs(groups) do
+            local dx, dy = group.px - giver.px, group.py - giver.py
+            if dx * dx + dy * dy < GROUP_RADIUS * GROUP_RADIUS then
+                home = group
+                break
+            end
+        end
+        if home then
+            local n = home.spawns
+            home.px, home.py = (home.px * n + giver.px) / (n + 1), (home.py * n + giver.py) / (n + 1)
+            home.spawns = n + 1
+            joinGiver(home, giver)
+        else
+            groups[#groups + 1] = { px = giver.px, py = giver.py, spawns = 1, givers = { giver } }
+        end
+    end
+    local merged = {}
+    for _, group in ipairs(groups) do
+        local entry = group.givers[1]
+        if #group.givers > 1 then
+            local shown = {}
+            for _, giver in ipairs(group.givers) do
+                for _, quest in ipairs(giver.shown) do shown[#shown + 1] = quest end
+            end
+            entry = { givers = group.givers, shown = shown }
+        end
+        merged[#merged + 1] = { px = group.px, py = group.py, entry = entry }
+    end
+    return merged
 end
 
 local function areaName(id)
@@ -309,8 +393,11 @@ function WM.RefreshMapPins()
         -- Pins keep one screen size; positions are worked in those units, not the canvas's.
         local width, height = WorldMapButton:GetWidth() * scale, WorldMapButton:GetHeight() * scale
         local items = {}
+        local function addAt(px, py, size, style, entry)
+            items[#items + 1] = { px = px, py = py, size = size, style = style, entry = entry }
+        end
         local function add(x, y, size, style, entry)
-            items[#items + 1] = { px = x * width, py = y * height, size = size, style = style, entry = entry }
+            addAt(x * width, y * height, size, style, entry)
         end
         if config.entrances ~= false then
             for _, entry in ipairs(WM.Entrances[mapFile] or EMPTY) do add(entry.x, entry.y, ENTRANCE_SIZE, styleEntrance, entry) end
@@ -337,12 +424,18 @@ function WM.RefreshMapPins()
         -- The server places givers on the zone's terrain map; a floor has coordinates of its own.
         local area = (GetCurrentMapAreaID() or 0) - 1
         if config.questGivers ~= false and area > 0 and WM.OnTerrainFloor() then
-            local trivial = config.trivialQuests == true
+            local trivial, repeatable = config.trivialQuests == true, config.repeatableQuests ~= false
+            local givers = {}
             for _, giver in ipairs(WM.QuestGivers(area) or EMPTY) do
-                local shown = trivial and giver.quests or giver.normal
+                local shown = questsShown(giver, trivial, repeatable)
                 if #shown > 0 then
-                    add(giver.x, giver.y, QUEST_SIZE, styleQuestGiver, { name = giver.name, shown = shown })
+                    givers[#givers + 1] = { px = giver.x * width, py = giver.y * height, name = giver.name, shown = shown }
                 end
+            end
+            if config.groupQuestGivers ~= false then
+                for _, group in ipairs(groupGivers(givers)) do addAt(group.px, group.py, QUEST_SIZE, styleQuestGiver, group.entry) end
+            else
+                for _, giver in ipairs(givers) do addAt(giver.px, giver.py, QUEST_SIZE, styleQuestGiver, giver) end
             end
         end
         spread(items, width, height)
@@ -354,8 +447,9 @@ function WM.RefreshMapPins()
             count = count + 1
             local pin = acquire(count)
             local previous = pin.name
-            pin.note, pin.quests = nil, nil
+            pin.note, pin.quests, pin.givers = nil, nil, nil
             pin.icon:SetDesaturated(false)
+            pin.count:Hide()
             item.style(pin, item.entry)
             if pin.name ~= previous then stopFlash(pin) end
             pin:SetScale(pinScale)

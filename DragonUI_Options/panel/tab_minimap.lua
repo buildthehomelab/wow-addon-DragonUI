@@ -292,6 +292,15 @@ local function BuildMinimapTab(scroll)
         end,
     })
 
+    C:AddToggle(basic, {
+        label = LO["Show Server Lag"],
+        desc = LO["Show how long the server takes to answer (a round trip through its world update) below the minimap. Move it in editor mode."],
+        dbPath = "minimap.latency",
+        callback = function()
+            if addon.RefreshLatency then addon.RefreshLatency() end
+        end,
+    })
+
     C:AddSlider(basic, {
         label = LO["Player Arrow Size"],
         dbPath = "minimap.player_arrow_size",

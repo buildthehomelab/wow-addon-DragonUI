@@ -57,6 +57,12 @@ local function RingDrop()
     return max(0, drop / UIParent:GetEffectiveScale()) + GAP
 end
 
+-- The default spot for a readout under the minimap: beside the durability figure, or this far below the map.
+function addon.MinimapReadoutSpot()
+    if DurabilityInTheWay() then return true, false end
+    return false, RingDrop()
+end
+
 local function Layout()
     local mover, sizer = Speed.mover, Speed.sizer
     local ratio = Speed.holder:GetEffectiveScale() / UIParent:GetEffectiveScale()
@@ -64,8 +70,8 @@ local function Layout()
     local moverHeight = max(height, MOVER_MIN_HEIGHT)
 
     local custom, widget = IsCustomPlaced(), GetWidget()
-    local beside = not custom and DurabilityInTheWay()
-    local drop = not custom and not beside and RingDrop()
+    local beside, drop
+    if not custom then beside, drop = addon.MinimapReadoutSpot() end
     local key = table.concat({ width, moverHeight, tostring(custom), tostring(beside), tostring(drop),
         custom and widget.posX or "", custom and widget.posY or "" }, ":")
     if key == Speed.layoutKey then return end
@@ -177,6 +183,11 @@ function addon.RefreshMovementSpeed()
 end
 
 addon.ResetMovementSpeedPosition = ResetPosition
+
+-- The speed line's mover while it is on screen, so the latency line can hang below it.
+function addon.MovementSpeedMover()
+    return enabled() and Speed.mover or nil
+end
 
 local driver = CreateFrame("Frame")
 driver:RegisterEvent("PLAYER_ENTERING_WORLD")

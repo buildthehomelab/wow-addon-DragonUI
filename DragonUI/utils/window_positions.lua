@@ -83,8 +83,10 @@ function Windows:ResetAll()
     return true
 end
 
+-- A reskinned stock window draws its title band on `_duiChrome`, inset from the frame's top.
 local function placeHandle(record, options)
-    local parent, anchor = options.parent or record.frame, options.anchor or record.frame
+    local parent = options.parent or record.frame
+    local anchor = options.anchor or record.frame._duiChrome or record.frame
     local handle = record.handle
     handle:SetParent(parent)
     handle:ClearAllPoints()
@@ -98,10 +100,13 @@ function Windows:Register(frame, key, options)
     if not frame or InCombatLockdown() then return end
     options = options or {}
     if self.frames[frame] then
-        if options.parent or options.anchor then placeHandle(self.frames[frame], options) end
+        if options.parent or options.anchor then
+            self.frames[frame].options = options
+            placeHandle(self.frames[frame], options)
+        end
         return
     end
-    local record = { frame = frame, key = key, defaults = {}, onReset = options.onReset }
+    local record = { frame = frame, key = key, defaults = {}, onReset = options.onReset, options = options }
     for i = 1, frame:GetNumPoints() do record.defaults[i] = { frame:GetPoint(i) } end
     local originalStart, originalStop = frame:GetScript('OnDragStart'), frame:GetScript('OnDragStop')
     local function start()
@@ -147,6 +152,12 @@ function Windows:Register(frame, key, options)
     -- Other panels can re-anchor an already open window without firing OnShow.
     hooksecurefunc(frame, 'SetPoint', function() Windows:Restore(frame) end)
     self:Restore(frame)
+end
+
+-- Re-seats a registered window's drag strip once its skin has drawn the chrome.
+function Windows:Rehandle(frame)
+    local record = self.frames[frame]
+    if record and not InCombatLockdown() then placeHandle(record, record.options) end
 end
 
 local PANEL_NAMES = {

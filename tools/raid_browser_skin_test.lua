@@ -251,9 +251,81 @@ assert(_G.LFRQueueFrameSpecificListScrollFrameScrollBar._duiReskinned
 local tab1, tab2 = _G.LFRParentFrameTab1, _G.LFRParentFrameTab2
 assert(reskinnedTabs[tab1] and reskinnedTabs[tab2], "stock tabs reskinned")
 assert(tab1.points[1][2] == host and tab2.points[1][2] == tab1, "stock tabs chained under the window")
+-- RaidFinder (wow-mod-raid-finder) loads after the build: its panel, then its tab.
+local finder = newObject("Frame", "RaidFinderPanel", window)
+finder.shown = false
+newObject("Texture", "RaidFinderPanelLayout", finder).file = "Interface\\LFGFrame\\UI-LFR-FRAME-MAIN"
+newObject("FontString", "RaidFinderPanelTitleText", finder)
+for _, role in ipairs({ "Tank", "Healer", "Damage" }) do
+    newObject("Button", "RaidFinderPanelRole" .. role, finder):SetSize(48, 48)
+end
+local finderScroll = newObject("ScrollFrame", "RaidFinderPanelListScrollFrame", finder)
+finderScroll:SetSize(296, 14 * 16 + 2)
+finderScroll:SetPoint("TOPLEFT", 25, -130)
+newObject("Texture", nil, finderScroll).file = "Interface\\PaperDollInfoFrame\\UI-Character-ScrollBar"
+newObject("Slider", "RaidFinderPanelListScrollFrameScrollBar", finderScroll)
+local notice = newObject("FontString", "RaidFinderPanelNotice", finder)
+notice:SetSize(313, 28)
+newObject("FontString", "RaidFinderPanelInfo", finder):SetSize(313, 12)
+local finderButtons = {}
+for _, spec in ipairs({ { "Left", 125 }, { "Middle", 85 }, { "Right", 115 } }) do
+    local button = panelButton("RaidFinderPanel" .. spec[1] .. "Button", finder, spec[2])
+    redButtons[button] = true -- RaidFinder reds its own buttons before the skin sees them
+    button._duiRedButton = {}
+    finderButtons[#finderButtons + 1] = button
+end
+for i = 1, 14 do
+    local row = newObject("Button", "RaidFinderPanelListButton" .. i, finder)
+    row:SetSize(295, 16)
+    row:SetPoint("TOPLEFT", 25, -132 - (i - 1) * 16)
+end
+
 local tab3 = newObject("Button", "LFRParentFrameTab3", window)
 tab3:SetPoint("LEFT", tab2, "RIGHT", -15, 0)
 PanelTemplates_SetNumTabs(window, 3)
+
+-- The Raid Finder page: dressed like Choose Raid when its tab joins the strip.
+assert(finder._duiStockSkinned, "the Raid Finder panel is dressed when its tab is added")
+assert(_G.RaidFinderPanelLayout._duiNeutered, "Raid Finder's stock frame art hidden")
+assert(_G.RaidFinderPanelTitleText.points[1][2] == host, "Raid Finder title in the title band")
+assert(finderScroll.regions[1]._duiNeutered and _G.RaidFinderPanelListScrollFrameScrollBar._duiReskinned,
+    "Raid Finder list gets the minimal bar")
+local fTankX, fTankY = topOffset(_G.RaidFinderPanelRoleTank, "TOPLEFT")
+assert(fTankX == tankX and fTankY == tankY, "Raid Finder roles where Choose Raid's are")
+local finderInsets = insetsOf(finder)
+assert(#finderInsets == 2, "the Raid Finder page owns its two insets")
+local _, fListTop = topOffset(finderInsets[1], "TOPLEFT")
+local _, fListBottom = topOffset(finderInsets[1], "BOTTOMRIGHT")
+local fCommentLeft, fCommentTop = topOffset(finderInsets[2], "TOPLEFT")
+local fCommentRight, fCommentBottom = topOffset(finderInsets[2], "BOTTOMRIGHT")
+assert(fListTop == listTop and fCommentTop == commentTop, "same insets as Choose Raid")
+for i = 1, 14 do
+    local row = _G["RaidFinderPanelListButton" .. i]
+    local x, y = topOffset(row, "TOPLEFT")
+    assert(#row.points == 1 and y < fListTop and y - 16 >= fListBottom, "Raid Finder row " .. i .. " inside the list inset")
+    assert(x > fCommentLeft and x + row:GetWidth() <= fCommentRight, "Raid Finder row " .. i .. " inside horizontally")
+end
+local _, scrollTop = topOffset(finderScroll, "TOPLEFT")
+assert(#finderScroll.points == 1 and scrollTop < fListTop and scrollTop - 226 >= fListBottom,
+    "Raid Finder scroll frame inside the list inset")
+local noticeX, noticeY = topOffset(notice, "TOPLEFT")
+assert(noticeY < fCommentTop and noticeY - 28 - 2 - 12 >= fCommentBottom, "notice and roster line fit the comment inset")
+assert(noticeX > fCommentLeft and noticeX + notice:GetWidth() < fCommentRight, "notice inside the comment inset")
+for _, button in ipairs(finderButtons) do
+    for _, part in ipairs({ "Left", "Middle", "Right" }) do
+        assert(_G[button.name .. part]._duiNeutered, button.name .. part .. " hidden on an already red button")
+    end
+end
+local fLeft, fRight = finderButtons[1], finderButtons[3]
+local fLeftX, fLeftY = topOffset(fLeft, "BOTTOMLEFT")
+local fRightX, fRightY = topOffset(fRight, "BOTTOMRIGHT")
+assert(fLeftY == findBottom and fRightY == findBottom, "Raid Finder buttons on the seat row")
+local fGap = finderButtons[2].points[1][4]
+assert(finderButtons[2].points[1][2] == fLeft and fGap == 2, "325 wide of buttons shrink to keep a 2 gap")
+local fWidths = fLeft:GetWidth() + finderButtons[2]:GetWidth() + fRight:GetWidth()
+assert(math.abs(fLeftX + fWidths + 2 * fGap - fRightX) < 0.01, "even gaps between the Raid Finder buttons")
+assert(fLeft:GetWidth() > finderButtons[2]:GetWidth(), "the buttons keep their proportions")
+assert(send:GetWidth() == 113 and gap == 2, "Browse's buttons already fit and keep their widths")
 assert(reskinnedTabs[tab3], "a tab added after the build is reskinned")
 assert(#tab3.points == 1 and tab3.points[1][1] == "TOPLEFT" and tab3.points[1][2] == tab2,
     "the added tab joins the chain")

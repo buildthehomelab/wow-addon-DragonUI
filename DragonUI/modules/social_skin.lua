@@ -589,6 +589,9 @@ local function buildSocialFrame()
     hidePortrait(window)
     dressTitle(chrome, _G.FriendsFrameTitleText)
     dressCloseButton(_G.FriendsFrameCloseButton, chrome, window)
+    if addon.WindowPositions then
+        addon.WindowPositions:Rehandle(window)
+    end
 
     listInset = buildInset(window)
     placeInset(listInset, window, INSET_LIST)

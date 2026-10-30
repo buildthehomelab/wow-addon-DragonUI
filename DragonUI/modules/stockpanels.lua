@@ -293,6 +293,10 @@ local function skinWindow(window, spec)
     for _, bounds in ipairs(spec.insets or {}) do
         addInset(window, bounds, bounds.parchment)
     end
+    -- The drag strip hung off the stock frame's top, 12 above this title band.
+    if addon.WindowPositions then
+        addon.WindowPositions:Rehandle(window)
+    end
     return host
 end
 
@@ -562,13 +566,47 @@ end
 
 -- UIPanelButtonTemplate2 keeps its stone in named Left/Middle/Right regions its scripts re-texture
 -- on every click, which SkinRedButton's state-texture strip never reaches.
+-- RaidFinder reds its own buttons first, so the stone is hidden even on an already red button.
 local function skinPanelButton2(button)
-    if not (button and addon.SkinRedButton) or button._duiRedButton then return end
+    if not (button and addon.SkinRedButton) then return end
     local name = button:GetName()
     if name then
         hideNamed({ name .. "Left", name .. "Middle", name .. "Right" })
     end
     addon.SkinRedButton(button)
+end
+
+-- Three buttons across the seat row, the outer two on the seats and even gaps between. Browse's
+-- three leave 2 between them; RaidFinder's 325 overlapped the 321 span, so they shrink to that gap.
+local LFR_MIN_BUTTON_GAP = 2
+local function spreadButtons(window, host, first, middle, last)
+    local seat = addon.WindowSeat
+    local span = window:GetWidth() - LFD_RECT[1] + LFD_RECT[3] - seat.buttonLeft + seat.buttonRight
+    local total = first:GetWidth() + middle:GetWidth() + last:GetWidth()
+    if span - total < 2 * LFR_MIN_BUTTON_GAP then
+        local scale = (span - 2 * LFR_MIN_BUTTON_GAP) / total
+        for _, button in ipairs({ first, middle, last }) do
+            button:SetWidth(button:GetWidth() * scale)
+        end
+        total = span - 2 * LFR_MIN_BUTTON_GAP
+    end
+    local gap = (span - total) / 2
+    first:ClearAllPoints()
+    first:SetPoint("BOTTOMLEFT", host, "BOTTOMLEFT", seat.buttonLeft, seat.buttonBottom)
+    middle:ClearAllPoints()
+    middle:SetPoint("LEFT", first, "RIGHT", gap, 0)
+    last:ClearAllPoints()
+    last:SetPoint("BOTTOMRIGHT", host, "BOTTOMRIGHT", seat.buttonRight, seat.buttonBottom)
+end
+
+-- Choose Raid's two insets: the raid list under the role glows, the comment box over the buttons.
+-- Returns them with the comment inset's top offset.
+local function addLFRQueueInsets(page, window, left, right, bottom)
+    local commentTop = -(window:GetHeight() - bottom - LFR_COMMENT_H - 2 * LFD_PAD)
+    local listBottom = bottom + LFR_COMMENT_H + 2 * LFD_PAD + addon.WindowSeat.gap
+    local list = addInset(page, { left, LFR_LIST_TOP, right, listBottom, topLeft = window, bottomRight = window })
+    local comment = addInset(page, { left, commentTop, right, bottom, topLeft = window, bottomRight = window })
+    return list, comment, commentTop
 end
 
 local function trimRaidRows()
@@ -590,10 +628,7 @@ local function buildLFRQueuePage(window, host, left, right, bottom, centre)
     placeRoles(window, centre, "LFRQueueFrameRoleButton", LFR_ROLES, LFR_ROLE_GAP)
 
     local seat = addon.WindowSeat
-    local commentTop = -(window:GetHeight() - bottom - LFR_COMMENT_H - 2 * LFD_PAD)
-    local listBottom = bottom + LFR_COMMENT_H + 2 * LFD_PAD + seat.gap
-    local list = addInset(page, { left, LFR_LIST_TOP, right, listBottom, topLeft = window, bottomRight = window })
-    local comment = addInset(page, { left, commentTop, right, bottom, topLeft = window, bottomRight = window })
+    local list, comment, commentTop = addLFRQueueInsets(page, window, left, right, bottom)
 
     local first = _G.LFRQueueFrameSpecificListButton1
     if first then
@@ -663,21 +698,68 @@ local function buildLFRBrowsePage(window, host, left, right, bottom, centre)
     local scrollRight = rowLeft + LFR_BROWSE_ROW_W + LFR_BROWSE_FAUX_RIGHT
     dressScrollBar("LFRBrowseFrameListScrollFrame", window:GetWidth() + barLeft - scrollRight)
 
-    local seat = addon.WindowSeat
     local send = _G.LFRBrowseFrameSendMessageButton
     local invite = _G.LFRBrowseFrameInviteButton
     local refresh = _G.LFRBrowseFrameRefreshButton
     if send and invite and refresh then
-        local span = window:GetWidth() - LFD_RECT[1] + LFD_RECT[3] - seat.buttonLeft + seat.buttonRight
-        local gap = (span - send:GetWidth() - invite:GetWidth() - refresh:GetWidth()) / 2
-        send:ClearAllPoints()
-        send:SetPoint("BOTTOMLEFT", host, "BOTTOMLEFT", seat.buttonLeft, seat.buttonBottom)
-        invite:ClearAllPoints()
-        invite:SetPoint("LEFT", send, "RIGHT", gap, 0)
-        refresh:ClearAllPoints()
-        refresh:SetPoint("BOTTOMRIGHT", host, "BOTTOMRIGHT", seat.buttonRight, seat.buttonBottom)
+        spreadButtons(window, host, send, invite, refresh)
     end
     for _, button in ipairs({ send, invite, refresh }) do
+        skinPanelButton2(button)
+    end
+end
+
+-- RaidFinder's third tab (wow-mod-raid-finder) is laid out like Choose Raid on the stock art: its
+-- panel gets the same title, roles, insets and seats. Its 14 rows each hang off the panel and its
+-- list scroll frame is its own, so all of them are re-seated, not just the first row.
+local RAID_FINDER_ROLES = { "Tank", "Healer", "Damage" }
+local RAID_FINDER_ROW_H = 16
+
+local function buildRaidFinderPage(window, host, left, right, bottom, centre)
+    local page = _G.RaidFinderPanel
+    if not page or page._duiStockSkinned then return end
+    page._duiStockSkinned = true
+
+    hideNamed({ "RaidFinderPanelLayout" })
+    dressTitle(host, _G.RaidFinderPanelTitleText)
+    placeRoles(window, centre, "RaidFinderPanelRole", RAID_FINDER_ROLES, LFR_ROLE_GAP)
+    local _, _, commentTop = addLFRQueueInsets(page, window, left, right, bottom)
+
+    local rowLeft, rowTop = left + LFD_PAD, LFR_LIST_TOP - LFD_PAD - LFR_FAUX_PAD
+    local i = 1
+    while _G["RaidFinderPanelListButton" .. i] do
+        local row = _G["RaidFinderPanelListButton" .. i]
+        row:ClearAllPoints()
+        row:SetPoint("TOPLEFT", window, "TOPLEFT", rowLeft, rowTop - (i - 1) * RAID_FINDER_ROW_H)
+        row:SetWidth(295 - 2 * LFD_ROW_TRIM)
+        i = i + 1
+    end
+    local scroll = _G.RaidFinderPanelListScrollFrame
+    if scroll then
+        scroll:ClearAllPoints()
+        scroll:SetPoint("TOPLEFT", window, "TOPLEFT", rowLeft, rowTop + LFR_FAUX_PAD)
+        local barLeft = right - LFD_PAD - LFD_BAR_W
+        dressScrollBar("RaidFinderPanelListScrollFrame",
+            window:GetWidth() + barLeft - rowLeft - scroll:GetWidth())
+    end
+
+    -- The realm's answer and the roster line fill the comment inset.
+    local notice, info = _G.RaidFinderPanelNotice, _G.RaidFinderPanelInfo
+    local textW = window:GetWidth() + right - left - 2 * LFD_PAD
+    if notice then
+        notice:ClearAllPoints()
+        notice:SetPoint("TOPLEFT", window, "TOPLEFT", rowLeft, commentTop - LFD_PAD)
+        notice:SetWidth(textW)
+    end
+    if info then info:SetWidth(textW) end
+
+    local first = _G.RaidFinderPanelLeftButton
+    local middle = _G.RaidFinderPanelMiddleButton
+    local last = _G.RaidFinderPanelRightButton
+    if first and middle and last then
+        spreadButtons(window, host, first, middle, last)
+    end
+    for _, button in ipairs({ first, middle, last }) do
         skinPanelButton2(button)
     end
 end
@@ -704,8 +786,10 @@ local function buildLFR()
     buildLFRBrowsePage(window, host, left, right, bottom, centre)
 
     -- The strip re-chains whenever it grows (RaidFinder adds its tab with PanelTemplates_SetNumTabs,
-    -- before or after this build) and on every open, after anything that re-anchored a tab.
+    -- before or after this build) and on every open, after anything that re-anchored a tab. RaidFinder
+    -- makes its panel before its tab, so the panel is dressed here too.
     local function relayoutTabs()
+        buildRaidFinderPage(window, host, left, right, bottom, centre)
         dressTabs(host, LFR_TAB_PREFIX, lfrTabCount)
     end
     relayoutTabs()

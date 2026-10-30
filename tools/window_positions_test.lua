@@ -143,6 +143,16 @@ bag.id=1; bag:SetPoint('CENTER',UIParent,'CENTER',0,0)
 assert(bag.x==500,'New pooled bag inherited a previous bag position')
 bagRecord.handle.scripts.OnDragStart(); bag.x=750; bagRecord.handle.scripts.OnDragStop()
 bag.id=0; bag:SetPoint('CENTER',UIParent,'CENTER',0,0); assert(bag.x==250)
+-- A reskinned stock window's strip moves onto its drawn title band once the chrome exists.
+local lfr=CreateFrame('Frame','LFRParentFrame',UIParent); lfr:SetPoint('CENTER',UIParent,'CENTER',0,0)
+windows:Register(lfr,'LFRParentFrame')
+local lfrRecord=windows.frames[lfr]
+assert(lfrRecord.handle.point[2]==lfr)
+lfr._duiChrome=CreateFrame('Frame',nil,lfr)
+windows:Rehandle(lfr)
+assert(lfrRecord.handle.parent==lfr and lfrRecord.handle.point[2]==lfr._duiChrome)
+windows:Register(lfr,'LFRParentFrame'); assert(lfrRecord.handle.point[2]==lfr._duiChrome,'Scan kept the chrome strip')
+windows:Rehandle(CreateFrame('Frame','GameMenuFrame',UIParent)); assert(not windows.frames[_G.GameMenuFrame])
 -- Professions can replace an early stock handle with their scaled chrome anchor.
 local chrome=CreateFrame('Frame',nil,f)
 windows:Register(f,'CharacterFrame',{parent=chrome,anchor=chrome})

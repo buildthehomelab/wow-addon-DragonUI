@@ -11,13 +11,20 @@ local MAX_TABS = MAX_GUILDBANK_TABS or 6
 local COLS = 14
 
 -- Slots per tab: 98 on a stock realm. A realm with bigger tabs (Evermore's edited Wow.exe holds up to
--- 196) says so when the bank opens, with an addon whisper to the player: "EvermoreGuildBank", "slots:<n>".
+-- 196) says so each time the bank opens, with an addon whisper to the player: "EvermoreGuildBank",
+-- "slots:<n>". The window usually opens just before it arrives, so the realm's last count is kept
+-- (mod.DB.guild.realmSlots, by realm name) and used until the whisper says otherwise.
 local STOCK_SLOTS = MAX_GUILDBANK_SLOTS_PER_TAB or 98
 local REALM_MAX_SLOTS = 196
-local numSlots = STOCK_SLOTS
+local heardSlots -- this session's count from the realm
+
+local function SavedSlots()
+    local saved = mod.DB and mod.DB.guild and mod.DB.guild.realmSlots
+    return saved and saved[GetRealmName()]
+end
 
 function addon.GetGuildBankSlots()
-    return numSlots
+    return heardSlots or SavedSlots() or STOCK_SLOTS
 end
 
 local QUEST_ITEM_SEARCH = format("t:%s|%s", select(12, GetAuctionItemClasses()) or "Quest", "quest")
@@ -206,7 +213,7 @@ do
         local f = self:Bind(CreateFrame("Frame", nil, parent))
         f.items = {}
         f.tab = 1
-        f:SetSlotCount(numSlots)
+        f:SetSlotCount(addon.GetGuildBankSlots())
 
         -- One-frame layout throttle: bank queries burst GUILDBANKBAGSLOTS_CHANGED
         f.updater = CreateFrame("Frame", nil, f)
@@ -818,7 +825,7 @@ do
             local cfg = mod.GetModuleConfig()
             local size = 36 + ((cfg and cfg.item_spacing) or 2) * 2
             local scale = min((self:GetWidth() - 30) / (COLS * size), 1.5)
-            self:SetHeight(min(rows * size * scale + 92, UIParent:GetHeight() - 40))
+            self:SetHeight(max(350, min(rows * size * scale + 92, UIParent:GetHeight() - 40)))
             self:UpdateItemFrameSize()
         end
         self.sets.rows = rows
@@ -1070,9 +1077,14 @@ do
     listener:SetScript("OnEvent", function(_, _, prefix, message, channel, sender)
         if prefix ~= "EvermoreGuildBank" or channel ~= "WHISPER" or sender ~= UnitName("player") then return end
         local count = tonumber(message:match("^slots:(%d+)$"))
-        if not count or count < STOCK_SLOTS or count > REALM_MAX_SLOTS or count == numSlots then return end
-        numSlots = count
-        if mod.guildFrame then
+        if not count or count < STOCK_SLOTS or count > REALM_MAX_SLOTS then return end
+        local changed = count ~= addon.GetGuildBankSlots()
+        heardSlots = count
+        if mod.DB and mod.DB.guild then
+            mod.DB.guild.realmSlots = mod.DB.guild.realmSlots or {}
+            mod.DB.guild.realmSlots[GetRealmName()] = count ~= STOCK_SLOTS and count or nil
+        end
+        if changed and mod.guildFrame then
             mod.guildFrame:SetSlotCount(count)
         end
     end)

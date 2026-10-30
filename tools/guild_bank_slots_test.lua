@@ -56,6 +56,8 @@ UIParent = CreateFrame("Frame", "UIParent")
 UIParent.height = 1000
 local player = "Squishy"
 function UnitName() return player end
+local realm = "Evermore"
+function GetRealmName() return realm end
 function GetAuctionItemClasses() return "Weapon" end
 function GetGuildBankItemInfo() return nil end
 function GetGuildBankItemLink() return nil end
@@ -88,15 +90,19 @@ function mod.BagsterRetailItemSlot() end
 mod.ItemSearch = {Find = function() return false end}
 mod.BagsterModule = {applied = true}
 setmetatable(mod, {__index = function(_, key) if key:match("^%u") then return stub end end})
+mod.DB = false -- no saved variables yet
 local addon = setmetatable({BagsterModule = mod, WindowSeat = {buttonBottom = 8}}, {__index = function() return stub end})
 
-local chunk = assert(loadfile("DragonUI/modules/bagster/bagster_guild.lua"))
-chunk("DragonUI", addon)
-
 local listener
-for _, f in ipairs(frames) do
-    if f.events.CHAT_MSG_ADDON then listener = f end
+-- Loading the file again is a new session: nothing heard from the realm yet.
+local function load()
+    frames = {}
+    assert(loadfile("DragonUI/modules/bagster/bagster_guild.lua"))("DragonUI", addon)
+    for _, f in ipairs(frames) do
+        if f.events.CHAT_MSG_ADDON then listener = f end
+    end
 end
+load()
 check(listener ~= nil, "a frame listens for CHAT_MSG_ADDON at load")
 local function whisper(prefix, message, channel, sender)
     listener.scripts.OnEvent(listener, "CHAT_MSG_ADDON", prefix, message, channel or "WHISPER", sender or player)
@@ -164,6 +170,31 @@ sets.rows, sets.h = 14, 652
 back.height = 652
 back:FitRows()
 check(back.height < 652 and sets.rows == 7, "on a 98-slot realm a 14-row height shrinks back")
+
+check(math.abs(back.height - 372) < 1e-9, "back to 7 rows at width 590 (" .. tostring(back.height) .. ")")
+local narrow = newWindow(98)
+sets.w, sets.rows = 384, 14
+narrow.width = 384
+narrow:FitRows()
+check(narrow.height == 350, "never under the window's 350 minimum (" .. tostring(narrow.height) .. ")")
+
+-- The realm's count is remembered by realm name, for the next session's first open.
+mod.DB = {guild = {}}
+load()
+check(addon.GetGuildBankSlots() == 98, "a new session on a realm never heard from: 98")
+whisper("EvermoreGuildBank", "slots:196")
+check(mod.DB.guild.realmSlots and mod.DB.guild.realmSlots.Evermore == 196, "the realm's 196 is saved under its name")
+load()
+check(addon.GetGuildBankSlots() == 196, "the next session starts with the saved 196, before any whisper")
+local seeded = mod.GuildItemFrame:New(UIParent)
+check(#seeded.items == 196, "a window made then has 196 buttons at once")
+realm = "Other"
+check(addon.GetGuildBankSlots() == 98, "another realm doesn't get it")
+realm = "Evermore"
+whisper("EvermoreGuildBank", "slots:98")
+check(addon.GetGuildBankSlots() == 98 and mod.DB.guild.realmSlots.Evermore == nil, "the realm going back to 98 is heard and forgotten")
+load()
+check(addon.GetGuildBankSlots() == 98, "and stays 98 the session after")
 
 print(string.format("%d checks, %d failed", checks, failures))
 os.exit(failures == 0 and 0 or 1)

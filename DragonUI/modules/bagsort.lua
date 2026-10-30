@@ -851,7 +851,8 @@ local function GetGuildBankTabSlotCount(tab)
     local name, _, canView, canDeposit, numWithdrawals = GetGuildBankTabInfo(tab)
     -- numWithdrawals is negative when withdrawals are unlimited for this rank.
     if name and canView and canDeposit and numWithdrawals ~= 0 then
-        return 98 -- MAX_GUILDBANK_SLOTS_PER_TAB; no reliable global constant for this in 3.3.5a
+        -- 98 (MAX_GUILDBANK_SLOTS_PER_TAB, not loaded until the bank opens) unless the realm has bigger tabs
+        return addon.GetGuildBankSlots and addon.GetGuildBankSlots() or 98
     end
     return 0
 end

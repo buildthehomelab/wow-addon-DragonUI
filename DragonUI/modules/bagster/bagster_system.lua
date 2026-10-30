@@ -184,16 +184,6 @@ local function ApplyBagsterSystem()
     BankFrame:UnregisterAllEvents()
     BankFrame:Hide()
 
-    -- The stock guild vault is load-on-demand; blanking its loader keeps it from ever existing
-    if mod.BagsterModule.originalStates.GuildBankFrame_LoadUI == nil then
-        mod.BagsterModule.originalStates.GuildBankFrame_LoadUI = _G.GuildBankFrame_LoadUI
-    end
-    _G.GuildBankFrame_LoadUI = function() end
-    if _G.GuildBankFrame then
-        GuildBankFrame:UnregisterAllEvents()
-        GuildBankFrame:Hide()
-    end
-
     if not mod.BagsterModule.hooks.inventoryEvents then
         mod("InventoryEvents"):Register(mod, "BANK_OPENED", function()
             mod:Show(BANK_CONTAINER, true)
@@ -243,6 +233,8 @@ local function ApplyBagsterSystem()
     SLASH_DRAGONUI_BAGSTER3 = "/combuctor" -- legacy alias for muscle memory
 
     mod.BagsterModule.applied = true
+    -- The stock guild vault gives way to bagster_guild's window
+    mod.UpdateGuildBankOwner()
     if mod.NewItems then mod.NewItems:Refresh() end
 end
 
@@ -252,13 +244,6 @@ local function RestoreBagsterSystem()
     -- Apply did BankFrame:UnregisterAllEvents(); without these the native bank never opens again
     BankFrame:RegisterEvent("BANKFRAME_OPENED")
     BankFrame:RegisterEvent("BANKFRAME_CLOSED")
-
-    if mod.BagsterModule.originalStates.GuildBankFrame_LoadUI then
-        _G.GuildBankFrame_LoadUI = mod.BagsterModule.originalStates.GuildBankFrame_LoadUI
-    end
-    if mod.HideGuildFrame then
-        mod.HideGuildFrame()
-    end
 
     if mod.BagsterModule.frames.autoEventFrame then
         mod.BagsterModule.frames.autoEventFrame:UnregisterAllEvents()
@@ -298,6 +283,8 @@ local function RestoreBagsterSystem()
 
     mod.BagsterModule.originalStates = {}
     mod.BagsterModule.applied = false
+    -- The stock guild vault comes back, unless the realm's tabs are bigger than it shows
+    mod.UpdateGuildBankOwner()
     if mod.NewItems then mod.NewItems:Refresh() end
 end
 

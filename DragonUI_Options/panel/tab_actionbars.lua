@@ -1028,7 +1028,7 @@ local subTabBuilders = {
 local function BuildActionbarsTab(scroll)
     -- The Extra Bar settings below still apply, so the tab stays.
     if addon.compatibility and addon.compatibility.bartenderActive then
-        C:AddLabel(scroll, "|cffFF6600" .. LO["Bartender4 runs your action bars this session, so DragonUI's bar settings here are not used. Use Bartender4's options (/bt4), or turn off Use Bartender4 in the Modules tab."] .. "|r", { color = C.Theme.warning })
+        C:AddLabel(scroll, "|cffFF6600" .. LO["Bartender4 runs your action bars this session, so DragonUI's bar settings here are not used. Use Bartender4's options (/bt4), or set Action bars to DragonUI under Bartender4 in the Modules tab."] .. "|r", { color = C.Theme.warning })
     end
     C:AddSubTabs(scroll, subTabs, activeSubTab, function(key)
         activeSubTab = key

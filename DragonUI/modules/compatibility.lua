@@ -989,38 +989,392 @@ end
 -- BARTENDER4 HAND-OFF
 -- ============================================================================
 
--- Bartender4 has its own of each. The main bars module stays on for the XP and reputation bars, noop for
--- their art, and the micro menu and bags stay DragonUI's.
-local BARTENDER_MODULES = { "vehicle", "stance", "petbar", "multicast", "buttons" }
-compatibility.BARTENDER_MODULES = BARTENDER_MODULES
+-- Each part is DragonUI's or Bartender4's (compatibility.bartender_<key>). `modules` are the DragonUI modules
+-- Bartender4 stands in for, `bartender` its modules kept off while DragonUI's `keeper` module runs the part.
+-- Under Bartender4's bars the main bars module stays on for the XP and reputation bars, noop for their art.
+local BARTENDER_PARTS = {
+    {
+        key = "actionbars", keeper = "mainbars",
+        modules = { "vehicle", "stance", "petbar", "multicast", "buttons" },
+        bartender = { "ActionBars", "PetBar", "StanceBar", "MultiCast", "Vehicle", "BlizzardArt" },
+    },
+    {
+        key = "micromenu", keeper = "micromenu",
+        modules = { "micromenu" },
+        bartender = { "MicroMenu", "BagBar" },
+    },
+}
+compatibility.BARTENDER_PARTS = BARTENDER_PARTS
 
--- Bartender4 modules that would take buttons or bars from the DragonUI module that keeps them.
-local BARTENDER_YIELDING = { MicroMenu = "micromenu", BagBar = "micromenu", XPBar = "mainbars", RepBar = "mainbars" }
+local BARTENDER_DEFAULT_OWNER = { actionbars = "bartender4", micromenu = "dragonui" }
 
-function compatibility:BartenderOwnsBars()
-    local cfg = GetCompatibilityConfig()
-    return IsAddOnLoaded("Bartender4") and cfg ~= nil and cfg.bartender_bars ~= false
+-- The XP and reputation bars stay DragonUI's either way: noop strips the stock art Bartender4's would show.
+local BARTENDER_XP = { "XPBar", "RepBar" }
+
+local function PartOfModule(name)
+    for _, part in ipairs(BARTENDER_PARTS) do
+        for _, moduleName in ipairs(part.modules) do
+            if moduleName == name then return part end
+        end
+    end
 end
 
--- They read SetEnabledState at PLAYER_LOGIN and are not built yet. Nothing is saved: with the DragonUI
--- module off, or DragonUI gone, they come back as Bartender4's own settings say.
-local function KeepBartenderOffDragonUIBars()
-    local bartender = _G.Bartender4
-    if not (bartender and bartender.GetModule) then return end
-    for name, keeper in pairs(BARTENDER_YIELDING) do
-        local module = addon:IsModuleEnabled(keeper) and bartender:GetModule(name, true)
-        if module then
-            module:SetEnabledState(false)
-            if module:IsEnabled() then
-                module:Disable()
-            end
-            -- Its profile switch and options checkbox call this; a stored "on" must not take the buttons.
-            module.ToggleModule = function(self, info, value)
-                if value ~= nil then
-                    self.db.profile.enabled = value
+-- The saved choice, "dragonui" or "bartender4"; what this session runs is in bartenderOwned.
+function compatibility:BartenderOwner(key)
+    local cfg = GetCompatibilityConfig()
+    return cfg and cfg["bartender_" .. key] or BARTENDER_DEFAULT_OWNER[key]
+end
+
+function compatibility:BartenderOwns(key)
+    return IsAddOnLoaded("Bartender4") and self:BartenderOwner(key) == "bartender4"
+end
+
+function compatibility:BartenderOwnsBars()
+    return self:BartenderOwns("actionbars")
+end
+
+-- Whether the saved choice switches this DragonUI module off for Bartender4.
+function compatibility:BartenderTakesModule(name)
+    local part = PartOfModule(name)
+    return part ~= nil and self:BartenderOwns(part.key)
+end
+
+-- They read SetEnabledState at PLAYER_LOGIN and are not built yet. Nothing is saved: once the part is
+-- handed over, or DragonUI is gone, they come back as Bartender4's own settings say.
+local function KeepBartenderModuleOff(bartender, name)
+    local module = bartender:GetModule(name, true)
+    if not module then return end
+    module:SetEnabledState(false)
+    if module:IsEnabled() then
+        module:Disable()
+    end
+    -- Its profile switch and options checkbox call this; a stored "on" must not bring the bar back.
+    module.ToggleModule = function(self, info, value)
+        if value ~= nil then
+            self.db.profile.enabled = value
+        end
+    end
+end
+
+-- State drivers and secure attributes: a reload in combat leaves these for when it ends.
+local function OutOfCombat(fn)
+    if not InCombatLockdown() then
+        fn()
+        return
+    end
+    local waiter = CreateFrame("Frame")
+    waiter:RegisterEvent("PLAYER_REGEN_ENABLED")
+    waiter:SetScript("OnEvent", function(self)
+        self:UnregisterEvent("PLAYER_REGEN_ENABLED")
+        fn()
+    end)
+end
+
+-- "Use Blizzard Vehicle UI" brings back the stock vehicle bar, which takes the micro buttons on every vehicle
+-- and state-hides the possess bar. Next to DragonUI's bars or micro menu it is off for the session, unsaved.
+local function KeepBartenderVehicleUIOff(bartender, keepVehicleBarOff)
+    local update = bartender.UpdateBlizzardVehicle
+    if not update or bartender.DragonUI_VehicleUIOff then return end
+    bartender.DragonUI_VehicleUIOff = true
+    bartender.UpdateBlizzardVehicle = function(self, ...)
+        local profile = self.db and self.db.profile
+        local saved = profile and profile.blizzardVehicle
+        if saved then profile.blizzardVehicle = false end
+        update(self, ...)
+        if saved then profile.blizzardVehicle = saved end
+        -- Its "off" branch enables its own vehicle bar directly, past the ToggleModule override.
+        if keepVehicleBarOff then
+            KeepBartenderModuleOff(self, "Vehicle")
+        end
+    end
+    -- Its OnInitialize already switched the stock vehicle bar on.
+    local profile = bartender.db and bartender.db.profile
+    if profile and profile.blizzardVehicle then
+        OutOfCombat(function() bartender:UpdateBlizzardVehicle() end)
+    end
+end
+
+local BLIZZARD_ACTION_BUTTONS = {
+    "ActionButton", "MultiBarBottomLeftButton", "MultiBarBottomRightButton", "MultiBarRightButton", "MultiBarLeftButton",
+}
+
+-- What ActionButton_OnLoad registers, and what ActionButton_Update adds once a slot has an action.
+local ACTION_BUTTON_EVENTS = {
+    "PLAYER_ENTERING_WORLD", "ACTIONBAR_SHOWGRID", "ACTIONBAR_HIDEGRID", "ACTIONBAR_PAGE_CHANGED",
+    "ACTIONBAR_SLOT_CHANGED", "UPDATE_BINDINGS", "UPDATE_SHAPESHIFT_FORM",
+}
+local ACTION_EVENTS = {
+    "ACTIONBAR_UPDATE_STATE", "ACTIONBAR_UPDATE_USABLE", "ACTIONBAR_UPDATE_COOLDOWN", "UPDATE_INVENTORY_ALERTS",
+    "PLAYER_TARGET_CHANGED", "TRADE_SKILL_SHOW", "TRADE_SKILL_CLOSE", "PLAYER_ENTER_COMBAT", "PLAYER_LEAVE_COMBAT",
+    "START_AUTOREPEAT_SPELL", "STOP_AUTOREPEAT_SPELL", "UNIT_ENTERED_VEHICLE", "UNIT_EXITED_VEHICLE",
+    "COMPANION_UPDATE", "UNIT_INVENTORY_CHANGED", "LEARNED_SPELL_IN_TAB",
+}
+
+-- Bartender4 loads first and its OnInitialize strips the stock bars for its own; DragonUI's are built on them.
+-- Its other changes (MainMenuBarArtFrame, the shapeshift and bonus bars) noop makes as well. Only events are
+-- put back: running the stock handlers or writing their fields from here would taint the buttons.
+local function RestoreBlizzardBars()
+    for _, prefix in ipairs(BLIZZARD_ACTION_BUTTONS) do
+        for i = 1, 12 do
+            local button = _G[prefix .. i]
+            if button then
+                for _, event in ipairs(ACTION_BUTTON_EVENTS) do
+                    button:RegisterEvent(event)
+                end
+                -- Set when the slot had an action at load (a reload): ActionButton_Update won't register these again.
+                if button.eventsRegistered then
+                    for _, event in ipairs(ACTION_EVENTS) do
+                        button:RegisterEvent(event)
+                    end
+                end
+                if button.action and HasAction(button.action) then
+                    button:Show()
                 end
             end
         end
+    end
+    -- The bars' parent: hidden, it would take the multi bars, the possess bar and the XP bar with it.
+    if MainMenuBar then MainMenuBar:Show() end
+    -- PLAYER_ENTERING_WORLD then updates it from the stock handler.
+    if PossessBarFrame then
+        PossessBarFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
+        PossessBarFrame:RegisterEvent("UPDATE_BONUS_ACTIONBAR")
+        PossessBarFrame:RegisterEvent("UNIT_AURA")
+        -- noop keeps this one off: on a page change it re-Shows the bonus bar the keybinds would then land on.
+        if not addon:IsModuleEnabled("noop") then
+            PossessBarFrame:RegisterEvent("ACTIONBAR_PAGE_CHANGED")
+        end
+    end
+    -- Stock FrameXML's, which Bartender4 swaps for an empty one. Run from here, ActionButton_ShowGrid and
+    -- HideGrid skip the showgrid count (they check issecure), so it is kept here. In combat their Show/Hide
+    -- would be blocked (the spellbook opens and closes in combat), so the grid catches up when it ends.
+    local gridPending
+    MultiActionBar_UpdateGrid = function(barName, show)
+        if InCombatLockdown() then
+            gridPending = true
+            return
+        end
+        for i = 1, NUM_MULTIBAR_BUTTONS do
+            local button = _G[barName .. "Button" .. i]
+            local count = button:GetAttribute("showgrid") or 0
+            button:SetAttribute("showgrid", show and count + 1 or math.max(count - 1, 0))
+            if show then
+                ActionButton_ShowGrid(button)
+            else
+                ActionButton_HideGrid(button)
+            end
+        end
+    end
+    local gridWatcher = CreateFrame("Frame")
+    gridWatcher:RegisterEvent("PLAYER_REGEN_ENABLED")
+    gridWatcher:SetScript("OnEvent", function()
+        if not gridPending then return end
+        gridPending = nil
+        -- What MultiActionBar_ShowAllGrids/HideAllGrids would have left: open spellbook or the option.
+        local show = (SpellBookFrame and SpellBookFrame:IsShown())
+            or ALWAYS_SHOW_MULTIBARS == "1" or ALWAYS_SHOW_MULTIBARS == 1
+        for _, barName in ipairs({ "MultiBarBottomLeft", "MultiBarBottomRight", "MultiBarRight", "MultiBarLeft" }) do
+            for i = 1, NUM_MULTIBAR_BUTTONS do
+                local button = _G[barName .. "Button" .. i]
+                button:SetAttribute("showgrid", show and 1 or 0)
+                if show then
+                    ActionButton_ShowGrid(button)
+                else
+                    ActionButton_HideGrid(button)
+                end
+            end
+        end
+    end)
+    -- The talent frame refreshes on a spec switch again.
+    if PlayerTalentFrame then
+        PlayerTalentFrame:RegisterEvent("ACTIVE_TALENT_GROUP_CHANGED")
+    elseif hooksecurefunc then
+        -- Runs after Bartender4's own hook, which unregisters it each time the frame loads.
+        hooksecurefunc("TalentFrame_LoadUI", function()
+            if PlayerTalentFrame then
+                PlayerTalentFrame:RegisterEvent("ACTIVE_TALENT_GROUP_CHANGED")
+            end
+        end)
+    end
+end
+
+-- DragonUI's bars and the Bartender4 bar that takes each over: an action bar id or a module, and the size
+-- of Bartender4's buttons on it.
+local BARTENDER_LAYOUT = {
+    { key = "bar1", bar = 1, prefix = "ActionButton", count = 12, size = 36 },
+    { key = "bar3", bar = 3, prefix = "MultiBarRightButton", count = 12, size = 36 },
+    { key = "bar4", bar = 4, prefix = "MultiBarLeftButton", count = 12, size = 36 },
+    { key = "bar5", bar = 5, prefix = "MultiBarBottomRightButton", count = 12, size = 36 },
+    { key = "bar6", bar = 6, prefix = "MultiBarBottomLeftButton", count = 12, size = 36 },
+    { key = "pet", module = "PetBar", prefix = "PetActionButton", count = 10, size = 30 },
+    { key = "stance", module = "StanceBar", prefix = "ShapeshiftButton", count = 10, size = 30 },
+}
+compatibility.BARTENDER_LAYOUT = BARTENDER_LAYOUT
+
+-- Bartender4's first button sits this far in from its bar's top-left corner (ButtonBar:UpdateButtonLayout).
+local BARTENDER_INSET_X, BARTENDER_INSET_Y = 5, 3
+
+-- A bar in UIParent units, as LibWindow stores Bartender4's positions: its TOPLEFT corner, scale, rows, gap,
+-- button count. Empty slots are hidden but laid out; the slots past DragonUI's count are parked off screen.
+local function MeasureBar(entry)
+    local uiScale = UIParent:GetEffectiveScale()
+    local left, top, width, gap, shown
+    local buttons, rows, tops = 0, 0, {}
+    local previous
+    for i = 1, entry.count do
+        local button = _G[entry.prefix .. i]
+        local bar = button and button:GetParent()
+        if bar and bar:IsVisible() and button:GetLeft() then
+            local s = button:GetEffectiveScale() / uiScale
+            local l, r, t = button:GetLeft() * s, button:GetRight() * s, button:GetTop() * s
+            if t > 0 then
+                buttons = buttons + 1
+                shown = shown or button:IsVisible()
+                left, top = math.min(left or l, l), math.max(top or t, t)
+                width = width or (r - l)
+                local row = math.floor(t + 0.5)
+                if not tops[row] then
+                    tops[row] = true
+                    rows = rows + 1
+                end
+                if previous and not gap and math.abs(previous.t - t) < 1 and l > previous.r then
+                    gap = l - previous.r
+                end
+                previous = { t = t, r = r }
+            end
+        end
+    end
+    -- An empty bar the player turned on still counts: "Always Show Action Bars" may be off.
+    if buttons == 0 or width <= 0 then return nil end
+    local scale = width / entry.size
+    return {
+        x = left - BARTENDER_INSET_X * scale,
+        y = top + BARTENDER_INSET_Y * scale - UIParent:GetHeight(),
+        scale = scale,
+        rows = rows,
+        buttons = buttons,
+        padding = gap and math.floor(gap / scale + 0.5) or nil,
+        shown = shown,
+    }
+end
+
+-- Runs at logout while DragonUI's bars are up. A pet or stance bar not shown then keeps its last spot.
+function compatibility:SnapshotBarLayout()
+    local cfg = GetCompatibilityConfig()
+    if not cfg or not UIParent or (UnitHasVehicleUI and UnitHasVehicleUI("player")) then return end
+    -- The main bar hidden means a possess or vehicle page: nothing on screen is the player's layout.
+    local main = MeasureBar(BARTENDER_LAYOUT[1])
+    if not main then return end
+    local layout = cfg.bartender_layout or {}
+    for _, entry in ipairs(BARTENDER_LAYOUT) do
+        local measured = MeasureBar(entry)
+        if entry.bar then
+            layout[entry.key] = measured or { hidden = true }
+        elseif measured and measured.shown then
+            layout[entry.key] = measured
+        end
+    end
+    cfg.bartender_layout = layout
+end
+
+-- Before Bartender4's PLAYER_LOGIN builds its bars, so they come up where DragonUI's were. The bar is a 1x1
+-- frame at its grow corner, so the corner is pinned: TOPLEFT, growing down and right.
+local function SeedBartenderLayout(bartender, layout)
+    for _, entry in ipairs(BARTENDER_LAYOUT) do
+        local saved = layout[entry.key]
+        local module = bartender:GetModule(entry.module or "ActionBars", true)
+        local profile = module and module.db and module.db.profile
+        local config = profile and (entry.bar and profile.actionbars and profile.actionbars[entry.bar] or not entry.bar and profile)
+        if saved and config then
+            if entry.bar then
+                config.enabled = not saved.hidden
+                config.buttons = saved.buttons or config.buttons
+            end
+            if saved.x then
+                local position = config.position or {}
+                position.point, position.x, position.y, position.scale = "TOPLEFT", saved.x, saved.y, saved.scale
+                position.growVertical, position.growHorizontal = "DOWN", "RIGHT"
+                config.position = position
+                config.rows = saved.rows
+                config.padding = saved.padding or config.padding
+            end
+        end
+    end
+    -- DragonUI pages its main bar instead of showing a second one.
+    local actionBars = bartender:GetModule("ActionBars", true)
+    local bars = actionBars and actionBars.db and actionBars.db.profile.actionbars
+    if bars and bars[2] and layout.bar1 then
+        bars[2].enabled = false
+    end
+end
+
+-- The load's split, set once: Bartender4's modules, the stock bars and the layout hand-over.
+function compatibility:SetupBartenderSession(cfg)
+    local owned = self.bartenderOwned
+    local runsBars = not owned.actionbars and addon:IsModuleEnabled("mainbars")
+    local bartender = IsAddOnLoaded("Bartender4") and _G.Bartender4
+    if bartender and bartender.GetModule then
+        local runsMicro = not owned.micromenu and addon:IsModuleEnabled("micromenu")
+        -- First: switching the stock vehicle bar off re-enables Bartender4's own vehicle bar.
+        if runsBars or runsMicro then
+            KeepBartenderVehicleUIOff(bartender, runsBars)
+        end
+        for _, part in ipairs(BARTENDER_PARTS) do
+            if not owned[part.key] and addon:IsModuleEnabled(part.keeper) then
+                for _, name in ipairs(part.bartender) do
+                    KeepBartenderModuleOff(bartender, name)
+                end
+            end
+        end
+        if addon:IsModuleEnabled("mainbars") then
+            for _, name in ipairs(BARTENDER_XP) do
+                KeepBartenderModuleOff(bartender, name)
+            end
+        end
+        if runsBars then
+            -- After combat PLAYER_ENTERING_WORLD is past: the buttons catch up on their next slot, form or
+            -- cooldown event, and the bars are laid out again over the shown buttons.
+            local deferred = InCombatLockdown()
+            OutOfCombat(function()
+                RestoreBlizzardBars()
+                if deferred and addon.RefreshMainbarsSystem then
+                    addon.RefreshMainbarsSystem()
+                end
+            end)
+        end
+        if owned.actionbars and cfg.bartender_last_bars ~= "bartender4" and cfg.bartender_layout then
+            SeedBartenderLayout(bartender, cfg.bartender_layout)
+        end
+    end
+
+    cfg.bartender_last_bars = owned.actionbars and "bartender4" or nil
+    if runsBars then
+        local watcher = CreateFrame("Frame")
+        watcher:RegisterEvent("PLAYER_LOGOUT")
+        watcher:SetScript("OnEvent", function() compatibility:SnapshotBarLayout() end)
+    elseif not owned.actionbars then
+        -- Stock bars this session: a layout from before would be out of date by the time Bartender4 comes.
+        cfg.bartender_layout = nil
+    end
+end
+
+-- Whether Bartender4 runs any part this session.
+function compatibility:BartenderRunsAny()
+    if not self.bartenderOwned then return false end
+    for _, part in ipairs(BARTENDER_PARTS) do
+        if self.bartenderOwned[part.key] then return true end
+    end
+    return false
+end
+
+-- Editor mode moves Bartender4's bars too, through its own unlock.
+function compatibility:SetBartenderUnlocked(unlocked)
+    local bartender = _G.Bartender4
+    if not (self:BartenderRunsAny() and bartender and bartender.Unlock and bartender.Lock) then return end
+    if unlocked then
+        bartender:Unlock()
+    else
+        bartender:Lock()
     end
 end
 
@@ -1031,34 +1385,55 @@ function compatibility:ApplyBartenderHandoff()
     local modules = cfg and addon.db.profile.modules
     if not modules then return end
 
-    local owns = self:BartenderOwnsBars()
-    -- The first run is the load; the modules that read this build once, so it holds until a reload.
-    if self.bartenderActive == nil then
-        self.bartenderActive = owns
-        if owns then
-            KeepBartenderOffDragonUIBars()
+    -- "Use Bartender4" turned off, from before the parts were split.
+    if cfg.bartender_bars ~= nil then
+        if cfg.bartender_bars == false then
+            cfg.bartender_actionbars = "dragonui"
         end
+        cfg.bartender_bars = nil
     end
 
-    if owns then
-        local handed = cfg.bartender_handed or {}
-        for _, name in ipairs(BARTENDER_MODULES) do
-            local moduleCfg = modules[name]
-            if moduleCfg and moduleCfg.enabled then
-                moduleCfg.enabled = false
-                handed[name] = true
-                self.bartenderJustHanded = true
+    -- The first run is the load; the modules that read this build once, so it holds until a reload.
+    local firstRun = self.bartenderOwned == nil
+    if firstRun then
+        self.bartenderOwned = {}
+        for _, part in ipairs(BARTENDER_PARTS) do
+            self.bartenderOwned[part.key] = self:BartenderOwns(part.key)
+        end
+        self.bartenderActive = self.bartenderOwned.actionbars
+    end
+
+    -- Both ways only for what this session's split already says: a profile switch mid-session waits for the
+    -- reload, or a part would be left with neither addon's bars.
+    local handed = cfg.bartender_handed or {}
+    for _, part in ipairs(BARTENDER_PARTS) do
+        local owns = self:BartenderOwns(part.key)
+        if owns and self.bartenderOwned[part.key] then
+            for _, name in ipairs(part.modules) do
+                local moduleCfg = modules[name]
+                if moduleCfg and moduleCfg.enabled then
+                    moduleCfg.enabled = false
+                    handed[name] = true
+                    self.bartenderJustHanded = self.bartenderJustHanded or {}
+                    self.bartenderJustHanded[part.key] = true
+                end
+            end
+        elseif not owns and not self.bartenderOwned[part.key] then
+            for _, name in ipairs(part.modules) do
+                if handed[name] then
+                    if modules[name] then
+                        modules[name].enabled = true
+                    end
+                    handed[name] = nil
+                end
             end
         end
-        cfg.bartender_handed = next(handed) and handed or nil
-    elseif cfg.bartender_handed and not self.bartenderActive then
-        -- Not while Bartender4 runs this session's bars: the modules would build over them. The next load restores.
-        for name in pairs(cfg.bartender_handed) do
-            if modules[name] then
-                modules[name].enabled = true
-            end
-        end
-        cfg.bartender_handed = nil
+    end
+    cfg.bartender_handed = next(handed) and handed or nil
+
+    -- After the hand-over: a micro menu coming back is its own keeper, so Bartender4's must see it on.
+    if firstRun then
+        self:SetupBartenderSession(cfg)
     end
 end
 
@@ -1206,8 +1581,14 @@ local function InitializeEvents()
                 ScheduleInterfaceSettingsScan(0.5)
             end
 
-            if compatibility.bartenderActive and compatibility.bartenderJustHanded then
-                print("|cFF00CCFFDragonUI:|r " .. L["Bartender4 now runs your action bars. DragonUI keeps the micro menu, bags and XP bars. Switch this in DragonUI options > Modules."])
+            local handed, owned = compatibility.bartenderJustHanded, compatibility.bartenderOwned
+            if handed and owned then
+                if handed.actionbars and owned.actionbars then
+                    print("|cFF00CCFFDragonUI:|r " .. L["Bartender4 now runs your action bars. DragonUI keeps the XP bars. Switch this in DragonUI options > Modules."])
+                end
+                if handed.micromenu and owned.micromenu then
+                    print("|cFF00CCFFDragonUI:|r " .. L["Bartender4 now runs your micro menu and bags. Switch this in DragonUI options > Modules."])
+                end
             end
 
         elseif event == "CVAR_UPDATE" then

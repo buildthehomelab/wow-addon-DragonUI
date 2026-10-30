@@ -301,7 +301,8 @@ L["Reset SexyMap mode choice (re-prompts on reload)"] = true
 L["Loaded addons:"] = true
 
 -- Bartender4 hand-off
-L["Bartender4 now runs your action bars. DragonUI keeps the micro menu, bags and XP bars. Switch this in DragonUI options > Modules."] = true
+L["Bartender4 now runs your action bars. DragonUI keeps the XP bars. Switch this in DragonUI options > Modules."] = true
+L["Bartender4 now runs your micro menu and bags. Switch this in DragonUI options > Modules."] = true
 
 -- ============================================================================
 -- STATIC POPUPS (shared between modules)

@@ -515,7 +515,9 @@ local defaults = {
 
         compatibility = {
             d3d9ex_warning_seen = false,
-            bartender_bars = true, -- Bartender4 runs the action bars when it is loaded; DragonUI keeps micro menu, bags, XP bars
+            -- Who runs each part while Bartender4 is loaded ("dragonui" or "bartender4"); the XP bars stay DragonUI's
+            bartender_actionbars = "bartender4",
+            bartender_micromenu = "dragonui",
         },
 
         buttons = {

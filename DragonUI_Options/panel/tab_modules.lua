@@ -23,14 +23,14 @@ local function ModuleToggle(parent, opts)
     -- opts: { label, desc, moduleName (single string or table of names), callback }
     local moduleNames = opts.moduleNames or { opts.moduleName }
 
-    -- While Bartender4 runs the bars, the hand-off would switch these off again on the next reload,
+    -- While Bartender4 runs a part, the hand-off would switch its modules off again on the next reload,
     -- so a group toggle keeps only the rest and a toggle of handed modules alone is locked.
     local compat = addon.compatibility
     local handedOff = false
-    if compat and compat:BartenderOwnsBars() then
+    if compat then
         local kept = {}
         for _, name in ipairs(moduleNames) do
-            if not tContains(compat.BARTENDER_MODULES, name) then
+            if not compat:BartenderTakesModule(name) then
                 kept[#kept + 1] = name
             end
         end
@@ -42,7 +42,7 @@ local function ModuleToggle(parent, opts)
     end
     local desc = opts.desc
     if handedOff then
-        desc = LO["Bartender4 is running these bars. Turn off Use Bartender4 to change them."]
+        desc = LO["Bartender4 runs this. Set it to DragonUI under Bartender4 in this tab to change it."]
     end
 
     C:AddToggle(parent, {
@@ -167,13 +167,29 @@ local function BuildModulesTab(scroll)
         moduleNames = { "mainbars", "vehicle", "stance", "petbar", "multicast", "buttons", "noop", "micromenu" },
     })
 
+    -- ====================================================================
+    -- BARTENDER4 (who runs what; applies on the reload the popup offers)
+    -- ====================================================================
     if IsAddOnLoaded("Bartender4") then
-        C:AddToggle(abSection, {
-            label = LO["Use Bartender4"],
-            desc = LO["Let Bartender4 run the action bars. DragonUI keeps the micro menu, bags and XP bars. Turn off to use DragonUI's bars alongside Bartender4."],
-            dbPath = "compatibility.bartender_bars",
-            requiresReload = true,
-        })
+        local btSection = C:AddSection(scroll, "Bartender4")
+        C:AddDescription(btSection, LO["Pick who runs each part. A change applies after a reload, and Bartender4's bars first come up where DragonUI's were. DragonUI keeps the XP and reputation bars, and its editor mode unlocks Bartender4's bars too."])
+        local owners = { dragonui = "DragonUI", bartender4 = "Bartender4" }
+        local function OwnerDropdown(key, label, desc)
+            local path = "compatibility.bartender_" .. key
+            C:AddDropdown(btSection, {
+                label = label,
+                desc = desc,
+                values = owners,
+                width = 200,
+                getFunc = function() return addon.Reload.Get(path) end,
+                setFunc = function(value) addon.Reload.Stage(path, value) end,
+            })
+        end
+        OwnerDropdown("actionbars", LO["Action bars"],
+            LO["Main, multi, pet, stance, totem and vehicle bars, and button styling."])
+        OwnerDropdown("micromenu", LO["Micro menu and bags"],
+            LO["With Bartender4's, the Pets & Mounts and Professions buttons are not shown."])
+        C:AddDescription(btSection, LO["With Bartender4's, the Pets & Mounts and Professions buttons are not shown."])
     end
 
     -- ====================================================================

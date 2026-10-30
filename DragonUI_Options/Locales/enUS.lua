@@ -576,6 +576,29 @@ L["Clear When Bags Close"] = true
 L["Closing a bag removes its new-item glows. When off, a glow only goes away when you hover the item."] = true
 L["Ignore Poor Quality Items"] = true
 L["Never mark gray (poor quality) items as new."] = true
+L["Loot Triage"] = true
+L["When the loot will not fit, the cheapest items in your bags get a numbered gold border (1 = delete first) and loot worth more than the cheapest of them gets a gold coin. Items are valued at vendor price times stack size. Alt + Right Click a bag item to star it: starred items are never suggested."] = true
+L["Show Marks"] = true
+L["While Loot Won't Fit"] = true
+L["When Bags Are Nearly Full"] = true
+L["Mark Style"] = true
+L["Gold Border"] = true
+L["Pulsing Gold Border"] = true
+L["Qualities Considered"] = true
+L["Poor and Common"] = true
+L["Poor, Common and Uncommon"] = true
+L["Numbered Items"] = true
+L["How many of the cheapest items get a numbered border."] = true
+L["Never Suggest Consumables"] = true
+L["Potions, food, drinks, bandages and ammunition."] = true
+L["Never Suggest Crafting Materials"] = true
+L["Trade goods (cloth, herbs, ore, leather), gems and reagents."] = true
+L["Never Suggest Profession Tools"] = true
+L["Mining picks, hammers, skinning knives, fishing poles, enchanting rods and the like."] = true
+L["Never Suggest Recipes"] = true
+L["Recipes, patterns, plans, schematics and formulas."] = true
+L["Sort Suggested Items Last"] = true
+L["Bag sort puts the items Loot Triage would suggest after everything else, the cheapest in the last slot."] = true
 
 -- Advanced modules - Fallback display names
 L["Main Bars"] = true

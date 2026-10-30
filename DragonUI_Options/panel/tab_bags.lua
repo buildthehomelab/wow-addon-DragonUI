@@ -381,6 +381,7 @@ local function BuildBagsTab(scroll)
     end
 
     local newItemsSection = C:AddSection(scroll, LO["New Items"])
+    local triageSection
 
     C:AddToggle(newItemsSection, {
         label = LO["Highlight New Items"],
@@ -465,6 +466,108 @@ local function BuildBagsTab(scroll)
         setFunc = function(val) SetNewItemsOption("new_ignore_junk", val) end,
         disabled = NewItemsOff,
     })
+
+    -- ====================================================================
+    -- LOOT TRIAGE (stock bags + Bagster + loot window)
+    -- ====================================================================
+    local function SetTriageOption(key, val)
+        GetBagsConfig(true)[key] = val
+        if addon.LootTriage then addon.LootTriage:Refresh() end
+    end
+
+    local function TriageOff()
+        local bags = GetBagsConfig(false)
+        return (bags and bags.triage_mode or "loot") == "off"
+    end
+
+    local function TriageKeep(key, label, desc)
+        C:AddToggle(triageSection, {
+            label = label,
+            desc = desc,
+            getFunc = function()
+                local bags = GetBagsConfig(false)
+                return not bags or bags[key] ~= false
+            end,
+            setFunc = function(val) SetTriageOption(key, val and true or false) end,
+            disabled = TriageOff,
+        })
+    end
+
+    triageSection = C:AddSection(scroll, LO["Loot Triage"])
+    C:AddDescription(triageSection, LO["When the loot will not fit, the cheapest items in your bags get a numbered gold border (1 = delete first) and loot worth more than the cheapest of them gets a gold coin. Items are valued at vendor price times stack size. Alt + Right Click a bag item to star it: starred items are never suggested."])
+
+    C:AddDropdown(triageSection, {
+        label = LO["Show Marks"],
+        values = {
+            loot = LO["While Loot Won't Fit"],
+            nearly = LO["When Bags Are Nearly Full"],
+            always = LO["Always"],
+            off = LO["Off"],
+        },
+        getFunc = function()
+            local bags = GetBagsConfig(false)
+            return (bags and bags.triage_mode) or "loot"
+        end,
+        setFunc = function(val)
+            SetTriageOption("triage_mode", val)
+            RedrawTab()
+        end,
+        width = 220,
+    })
+
+    C:AddDropdown(triageSection, {
+        label = LO["Mark Style"],
+        values = {
+            border = LO["Gold Border"],
+            pulse = LO["Pulsing Gold Border"],
+        },
+        getFunc = function()
+            local bags = GetBagsConfig(false)
+            return (bags and bags.triage_style) or "border"
+        end,
+        setFunc = function(val) SetTriageOption("triage_style", val) end,
+        disabled = TriageOff,
+        width = 220,
+    })
+
+    C:AddDropdown(triageSection, {
+        label = LO["Qualities Considered"],
+        values = {
+            [0] = LO["Poor"],
+            [1] = LO["Poor and Common"],
+            [2] = LO["Poor, Common and Uncommon"],
+        },
+        getFunc = function()
+            local bags = GetBagsConfig(false)
+            return (bags and bags.triage_quality) or 1
+        end,
+        setFunc = function(val) SetTriageOption("triage_quality", tonumber(val) or 1) end,
+        disabled = TriageOff,
+        width = 220,
+    })
+
+    C:AddSlider(triageSection, {
+        label = LO["Numbered Items"],
+        desc = LO["How many of the cheapest items get a numbered border."],
+        min = 1, max = 10, step = 1,
+        getFunc = function()
+            local bags = GetBagsConfig(false)
+            return (bags and bags.triage_marks) or 3
+        end,
+        setFunc = function(val) SetTriageOption("triage_marks", math.floor(val + 0.5)) end,
+        disabled = TriageOff,
+    })
+
+    TriageKeep("triage_keep_consumables", LO["Never Suggest Consumables"],
+        LO["Potions, food, drinks, bandages and ammunition."])
+    TriageKeep("triage_keep_materials", LO["Never Suggest Crafting Materials"],
+        LO["Trade goods (cloth, herbs, ore, leather), gems and reagents."])
+    TriageKeep("triage_keep_tools", LO["Never Suggest Profession Tools"],
+        LO["Mining picks, hammers, skinning knives, fishing poles, enchanting rods and the like."])
+    TriageKeep("triage_keep_recipes", LO["Never Suggest Recipes"],
+        LO["Recipes, patterns, plans, schematics and formulas."])
+    TriageKeep("triage_sort", LO["Sort Suggested Items Last"],
+        LO["Bag sort puts the items Loot Triage would suggest after everything else, the cheapest in the last slot."])
 
     -- ====================================================================
     -- BAG SORT

@@ -9,6 +9,7 @@ lua5.1 tools/feral_ap_tooltip_test.lua
 lua5.1 tools/guild_bank_slots_test.lua
 lua5.1 tools/keybinding_search_test.lua
 lua5.1 tools/latency_test.lua
+lua5.1 tools/loot_triage_test.lua
 lua5.1 tools/minimap_zoom_test.lua
 lua5.1 tools/movement_speed_test.lua
 lua5.1 tools/quest_givers_test.lua
@@ -54,3 +55,4 @@ Measure behavioral line coverage with Lua/luac 5.1:
 `python3 tools/measure_coverage.py --output /tmp/dragonui-coverage.json`.
 See `coverage-baseline.json` for the measured baseline and the integration report
 for remaining gaps; this is not full line or branch coverage.
+The loot triage test covers ranking by stack value (cheapest first, the marks cap, greens only at quality 2, consumables only when allowed), the items never suggested (crafting materials, recipes, Mining Pick, fishing pole, Hearthstone, quest items, unsellable items), the static and pulsing border, the Alt + Right Click star (not Alt + Left, not with the auction house open, not when bag sort locks with Alt + Right Click) and the next item moving up, the loot coins (dear loot and quest items only), and when marks show: while the loot will not fit, at 4 or fewer free slots, always, or never.

@@ -366,6 +366,7 @@ do
         self:UpdateCooldown()
         self:SetAlpha(self:MatchesSearch() and 1 or 0.3)
         if mod.NewItems then mod.NewItems:UpdateSlot(self, quality) end
+        if addon.LootTriage then addon.LootTriage:UpdateSlot(self) end
         if GameTooltip:IsOwned(self) and self.UpdateTooltip then
             self:UpdateTooltip()
         end

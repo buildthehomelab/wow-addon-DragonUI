@@ -1680,6 +1680,10 @@ L["Show Quest Givers"] = true
 L["Show quest giver pins on zone maps for quests you can take now. Needs the server's mod-quest-map."] = true
 L["Show Trivial Quests"] = true
 L["Also show quest givers whose quests are far below your level."] = true
+L["Show Repeatable Quests"] = true
+L["Also show quest givers whose quests are all dailies or repeatable turn-ins (blue pins)."] = true
+L["Group Nearby Quest Givers"] = true
+L["Quest givers standing close together share one pin with a count. Zoom in to split them."] = true
 
 -- ============================================================================
 -- LOW HP ALERT MODULE (added by DragonUI)

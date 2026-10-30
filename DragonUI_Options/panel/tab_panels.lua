@@ -432,6 +432,30 @@ local function BuildWorldMapSubTab(scroll)
     })
 
     C:AddToggle(mapSection, {
+        label = LO["Show Repeatable Quests"],
+        desc = LO["Also show quest givers whose quests are all dailies or repeatable turn-ins (blue pins)."],
+        getFunc = function() return GetModuleField("worldmap", "repeatableQuests") ~= false end,
+        setFunc = function(val)
+            EnsureModuleTable("worldmap").repeatableQuests = val
+            if addon.RefreshWorldMapSystem then addon.RefreshWorldMapSystem() end
+        end,
+        disabled = function() return not IsEnabled("worldmap") or GetModuleField("worldmap", "questGivers") == false end,
+        requiresReload = false,
+    })
+
+    C:AddToggle(mapSection, {
+        label = LO["Group Nearby Quest Givers"],
+        desc = LO["Quest givers standing close together share one pin with a count. Zoom in to split them."],
+        getFunc = function() return GetModuleField("worldmap", "groupQuestGivers") ~= false end,
+        setFunc = function(val)
+            EnsureModuleTable("worldmap").groupQuestGivers = val
+            if addon.RefreshWorldMapSystem then addon.RefreshWorldMapSystem() end
+        end,
+        disabled = function() return not IsEnabled("worldmap") or GetModuleField("worldmap", "questGivers") == false end,
+        requiresReload = false,
+    })
+
+    C:AddToggle(mapSection, {
         label = LO["Show Landmarks"],
         desc = LO["Show towns, flight points and other landmark pins on the map."],
         getFunc = function() return GetModuleField("worldmap", "landmarks") ~= false end,

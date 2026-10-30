@@ -1678,6 +1678,10 @@ L["Show Quest Givers"] = "Показывать дающих задания"
 L["Show quest giver pins on zone maps for quests you can take now. Needs the server's mod-quest-map."] = "Показывает на картах зон персонажей, у которых можно взять задания сейчас. Требуется mod-quest-map на сервере."
 L["Show Trivial Quests"] = "Показывать простые задания"
 L["Also show quest givers whose quests are far below your level."] = "Показывает также персонажей, чьи задания намного ниже вашего уровня."
+L["Show Repeatable Quests"] = "Показывать повторяемые задания"
+L["Also show quest givers whose quests are all dailies or repeatable turn-ins (blue pins)."] = "Показывает также персонажей, у которых только ежедневные или повторяемые задания (синие метки)."
+L["Group Nearby Quest Givers"] = "Группировать соседних дающих задания"
+L["Quest givers standing close together share one pin with a count. Zoom in to split them."] = "Стоящие рядом дающие задания объединяются в одну метку с числом. Приблизьте карту, чтобы разделить их."
 
 -- ============================================================================
 -- LOW HP ALERT MODULE (added by DragonUI)

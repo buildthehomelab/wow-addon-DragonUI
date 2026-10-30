@@ -1679,6 +1679,10 @@ L["Show Quest Givers"] = "퀘스트 제공자 표시"
 L["Show quest giver pins on zone maps for quests you can take now. Needs the server's mod-quest-map."] = "지금 받을 수 있는 퀘스트의 제공자를 지역 지도에 표시합니다. 서버에 mod-quest-map이 필요합니다."
 L["Show Trivial Quests"] = "낮은 레벨 퀘스트 표시"
 L["Also show quest givers whose quests are far below your level."] = "레벨보다 훨씬 낮은 퀘스트의 제공자도 표시합니다."
+L["Show Repeatable Quests"] = "반복 퀘스트 표시"
+L["Also show quest givers whose quests are all dailies or repeatable turn-ins (blue pins)."] = "일일 또는 반복 퀘스트만 있는 제공자도 표시합니다(파란색 표시)."
+L["Group Nearby Quest Givers"] = "가까운 퀘스트 제공자 묶기"
+L["Quest givers standing close together share one pin with a count. Zoom in to split them."] = "가까이 있는 퀘스트 제공자를 숫자와 함께 하나의 표시로 묶습니다. 확대하면 나뉩니다."
 
 -- ============================================================================
 -- LOW HP ALERT MODULE (added by DragonUI)

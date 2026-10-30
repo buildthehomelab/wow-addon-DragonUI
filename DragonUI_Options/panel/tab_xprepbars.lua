@@ -105,6 +105,11 @@ local function BuildXpRepTab(scroll)
 
     BuildRateSection(scroll)
 
+    if addon.compatibility and addon.compatibility:BartenderRuns("xpbars") then
+        C:AddLabel(scroll, "|cffFF6600" .. LO["Bartender4 runs your XP and reputation bars this session, so the bar settings here are not used. Use Bartender4's options (/bt4), or set XP and reputation bars to DragonUI under Bartender4 in the Modules tab."] .. "|r", { color = C.Theme.warning })
+        return
+    end
+
     -- ====================================================================
     -- STYLE SELECTOR
     -- ====================================================================

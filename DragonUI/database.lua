@@ -515,9 +515,10 @@ local defaults = {
 
         compatibility = {
             d3d9ex_warning_seen = false,
-            -- Who runs each part while Bartender4 is loaded ("dragonui" or "bartender4"); the XP bars stay DragonUI's
+            -- Who runs each part while Bartender4 is loaded ("dragonui" or "bartender4")
             bartender_actionbars = "bartender4",
             bartender_micromenu = "dragonui",
+            bartender_xpbars = "dragonui",
         },
 
         buttons = {

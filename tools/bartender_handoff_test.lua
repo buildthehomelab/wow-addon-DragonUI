@@ -194,6 +194,7 @@ local function login()
     for _, text in ipairs(printed) do
         if text:find('action bars', 1, true) then lines.actionbars = true end
         if text:find('micro menu', 1, true) then lines.micromenu = true end
+        if text:find('XP and reputation', 1, true) then lines.xp = true end
     end
     return lines
 end
@@ -350,6 +351,63 @@ assert(cfg.bartender_last_bars == "bartender4")
 bars[1].position.x = 12
 addon, compat, modules, cfg = newAddon(savedProfile)
 assert(bars[1].position.x == 12, 'Bartender4 bar moved back on a later load')
+
+-- XP and reputation bars. DragonUI's XP bar: 466 x 14 at UIParent's scale, left 407, top 20; no faction watched.
+local function newFrame(left, top, width, height, visible)
+    return {
+        IsVisible = function() return visible end,
+        GetEffectiveScale = function() return 0.8 end,
+        GetLeft = function() return left end,
+        GetRight = function() return left + width end,
+        GetTop = function() return top end,
+        GetBottom = function() return top - height end,
+    }
+end
+assert(compat:BartenderRuns("xpbars") == false and bartenderModules.XPBar.enabledState == false)
+addon.ActionBarFrames = { xpbar = newFrame(407, 20, 466, 14, true), repbar = newFrame(407, 36, 466, 14, false) }
+fire('PLAYER_LOGOUT')
+assert(layout == cfg.bartender_layout and layout.bar1, 'action bar layout lost while Bartender4 ran the bars')
+-- The stock 1024 x 13 bar centred on DragonUI's (centre 640, 13), scaled by height (14 / 13, at most 1), not
+-- by width (466 / 1024 would leave it 6 px tall).
+assert(layout.xp and near(layout.xp.scale, 1), 'XP bar not measured')
+assert(near(layout.xp.x, 640 - 512 - 5) and near(layout.xp.y, 13 + 6.5 + 3 - 960), layout.xp.y)
+assert(layout.rep == nil, 'hidden reputation bar measured')
+-- A thin retail-style bar (9 px) still gives a readable one.
+addon.ActionBarFrames.xpbar = newFrame(407, 20, 466, 9, true)
+fire('PLAYER_LOGOUT')
+assert(near(layout.xp.scale, 0.8))
+addon.ActionBarFrames.xpbar = newFrame(407, 20, 466, 14, true)
+fire('PLAYER_LOGOUT')
+
+-- Set to Bartender4: its XP and reputation bars (off by default) come on, the XP bar where DragonUI's was.
+cfg.bartender_xpbars = "bartender4"
+newBartender(false)
+bartenderModules.XPBar.db.profile.enabled, bartenderModules.XPBar.enabledState = false, false
+bartenderModules.XPBar.db.profile.position = {}
+addon, compat, modules, cfg = newAddon(savedProfile)
+local xp, repBar = bartenderModules.XPBar, bartenderModules.RepBar
+assert(compat:BartenderRuns("xpbars") and xp.enabledState and repBar.enabledState, 'Bartender4 XP bars left off')
+assert(xp.db.profile.enabled and repBar.db.profile.enabled)
+assert(xp.db.profile.position.point == "TOPLEFT" and near(xp.db.profile.position.scale, 1))
+assert(near(xp.db.profile.position.x, layout.xp.x) and xp.db.profile.position.growHorizontal == "RIGHT")
+-- The reputation bar DragonUI never showed goes over the XP bar, not to Bartender4's screen centre.
+local repPosition = repBar.db.profile.position
+assert(repPosition and repPosition.point == "TOPLEFT" and near(repPosition.x, layout.xp.x))
+-- Centre 16 higher; the stock reputation bar is 11 tall, the XP bar 13.
+assert(near(repPosition.y, layout.xp.y + 16 - 1), repPosition and repPosition.y)
+lines = login()
+assert(lines.xp, 'no login line for the XP bars')
+-- Turned on once: switching them off again in Bartender4 sticks.
+xp.db.profile.enabled = false
+addon, compat, modules, cfg = newAddon(savedProfile)
+assert(xp.db.profile.enabled == false and next(login()) == nil)
+
+-- And back to DragonUI: Bartender4's are kept off for the session, its settings left as they are.
+cfg.bartender_xpbars = "dragonui"
+newBartender(false)
+addon, compat, modules, cfg = newAddon(savedProfile)
+assert(not compat:BartenderRuns("xpbars") and bartenderModules.XPBar.enabledState == false)
+assert(bartenderModules.XPBar.db.profile.enabled == true)
 
 -- A reload in combat restores the stock bars once combat ends.
 cfg.bartender_actionbars = "dragonui"

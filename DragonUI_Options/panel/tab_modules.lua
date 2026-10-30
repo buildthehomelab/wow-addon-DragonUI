@@ -172,7 +172,7 @@ local function BuildModulesTab(scroll)
     -- ====================================================================
     if IsAddOnLoaded("Bartender4") then
         local btSection = C:AddSection(scroll, "Bartender4")
-        C:AddDescription(btSection, LO["Pick who runs each part. A change applies after a reload, and Bartender4's bars first come up where DragonUI's were. DragonUI keeps the XP and reputation bars, and its editor mode unlocks Bartender4's bars too."])
+        C:AddDescription(btSection, LO["Pick who runs each part. A change applies after a reload, and Bartender4's bars first come up where DragonUI's were. DragonUI's editor mode unlocks Bartender4's bars too."])
         local owners = { dragonui = "DragonUI", bartender4 = "Bartender4" }
         local function OwnerDropdown(key, label, desc)
             local path = "compatibility.bartender_" .. key
@@ -190,6 +190,8 @@ local function BuildModulesTab(scroll)
         OwnerDropdown("micromenu", LO["Micro menu and bags"],
             LO["With Bartender4's, the Pets & Mounts and Professions buttons are not shown."])
         C:AddDescription(btSection, LO["With Bartender4's, the Pets & Mounts and Professions buttons are not shown."])
+        OwnerDropdown("xpbars", LO["XP and reputation bars"],
+            LO["Bartender4's are the stock bars; switching to them turns them on in Bartender4."])
     end
 
     -- ====================================================================

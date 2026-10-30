@@ -114,15 +114,19 @@ local function ApplyNoopChangesImpl()
         ExhaustionTick:Hide()
         ExhaustionTick:SetScript("OnUpdate", nil)
     end
-    if ExhaustionLevelFillBar then
-        ExhaustionLevelFillBar:Hide()
-    end
+    -- Bartender4's XP bars are the stock ones and draw with this art and the rested fill.
+    local bartenderXp = addon.compatibility and addon.compatibility:BartenderRuns("xpbars")
+    if not bartenderXp then
+        if ExhaustionLevelFillBar then
+            ExhaustionLevelFillBar:Hide()
+        end
 
-    for _, stem in pairs(XP_ART_STEMS) do
-        for segment = 0, 3 do
-            local art = _G[stem .. segment]
-            if art then
-                art:SetTexture(nil)
+        for _, stem in pairs(XP_ART_STEMS) do
+            for segment = 0, 3 do
+                local art = _G[stem .. segment]
+                if art then
+                    art:SetTexture(nil)
+                end
             end
         end
     end

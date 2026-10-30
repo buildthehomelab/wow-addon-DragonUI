@@ -991,7 +991,8 @@ end
 
 -- Each part is DragonUI's or Bartender4's (compatibility.bartender_<key>). `modules` are the DragonUI modules
 -- Bartender4 stands in for, `bartender` its modules kept off while DragonUI's `keeper` module runs the part.
--- Under Bartender4's bars the main bars module stays on for the XP and reputation bars, noop for their art.
+-- The XP and reputation bars are part of the main bars module, which reads bartenderOwned for them; under
+-- Bartender4's action bars it stays on for its XP bars, noop for their art.
 local BARTENDER_PARTS = {
     {
         key = "actionbars", keeper = "mainbars",
@@ -1003,13 +1004,15 @@ local BARTENDER_PARTS = {
         modules = { "micromenu" },
         bartender = { "MicroMenu", "BagBar" },
     },
+    {
+        key = "xpbars", keeper = "mainbars",
+        modules = {},
+        bartender = { "XPBar", "RepBar" },
+    },
 }
 compatibility.BARTENDER_PARTS = BARTENDER_PARTS
 
-local BARTENDER_DEFAULT_OWNER = { actionbars = "bartender4", micromenu = "dragonui" }
-
--- The XP and reputation bars stay DragonUI's either way: noop strips the stock art Bartender4's would show.
-local BARTENDER_XP = { "XPBar", "RepBar" }
+local BARTENDER_DEFAULT_OWNER = { actionbars = "bartender4", micromenu = "dragonui", xpbars = "dragonui" }
 
 local function PartOfModule(name)
     for _, part in ipairs(BARTENDER_PARTS) do
@@ -1027,6 +1030,11 @@ end
 
 function compatibility:BartenderOwns(key)
     return IsAddOnLoaded("Bartender4") and self:BartenderOwner(key) == "bartender4"
+end
+
+-- What this session runs: fixed at load, read by the modules that build once.
+function compatibility:BartenderRuns(key)
+    return self.bartenderOwned and self.bartenderOwned[key] or false
 end
 
 function compatibility:BartenderOwnsBars()
@@ -1258,23 +1266,111 @@ local function MeasureBar(entry)
     }
 end
 
--- Runs at logout while DragonUI's bars are up. A pet or stance bar not shown then keeps its last spot.
-function compatibility:SnapshotBarLayout()
+-- Bartender4's XP and reputation bars hold the stock 1024-wide bars (13 and 11 tall), 5 in and 3 down from
+-- their corner.
+local BARTENDER_XP_LAYOUT = {
+    { key = "xp", module = "XPBar", frame = "xpbar", height = 13 },
+    { key = "rep", module = "RepBar", frame = "repbar", height = 11 },
+}
+local STOCK_XP_WIDTH, STOCK_XP_HEIGHT, STOCK_REP_HEIGHT = 1024, 13, 11
+-- DragonUI's bars are far wider for their height than the stock ones: matching the width would leave a
+-- bar a few pixels tall, so the height sets the scale, kept readable.
+local XP_MIN_SCALE, XP_MAX_SCALE = 0.8, 1
+-- Reputation over XP, as DragonUI stacks them (its default spots are 16 apart).
+local XP_STACK_GAP = 16
+
+-- Where the stock bar would sit centred on (cx, cy), in LibWindow's TOPLEFT terms.
+local function StockXpSpot(cx, cy, scale, height)
+    return {
+        x = cx - STOCK_XP_WIDTH * scale / 2 - BARTENDER_INSET_X * scale,
+        y = cy + height * scale / 2 + BARTENDER_INSET_Y * scale - UIParent:GetHeight(),
+        scale = scale,
+        cx = cx, cy = cy,
+    }
+end
+
+local function MeasureXpBar(frame, height)
+    if not (frame and frame:IsVisible() and frame:GetLeft()) then return nil end
+    local s = frame:GetEffectiveScale() / UIParent:GetEffectiveScale()
+    local left, right = frame:GetLeft() * s, frame:GetRight() * s
+    local top, bottom = frame:GetTop() * s, frame:GetBottom() * s
+    if right <= left or top <= bottom then return nil end
+    local scale = math.max(XP_MIN_SCALE, math.min(XP_MAX_SCALE, (top - bottom) / height))
+    return StockXpSpot((left + right) / 2, (top + bottom) / 2, scale, height)
+end
+
+-- Runs at logout for what DragonUI ran. A pet, stance, XP or reputation bar not shown then keeps its last spot.
+function compatibility:SnapshotBarLayout(bars, xpbars)
     local cfg = GetCompatibilityConfig()
     if not cfg or not UIParent or (UnitHasVehicleUI and UnitHasVehicleUI("player")) then return end
-    -- The main bar hidden means a possess or vehicle page: nothing on screen is the player's layout.
-    local main = MeasureBar(BARTENDER_LAYOUT[1])
-    if not main then return end
     local layout = cfg.bartender_layout or {}
-    for _, entry in ipairs(BARTENDER_LAYOUT) do
-        local measured = MeasureBar(entry)
-        if entry.bar then
-            layout[entry.key] = measured or { hidden = true }
-        elseif measured and measured.shown then
-            layout[entry.key] = measured
+    -- The main bar hidden means a possess or vehicle page: nothing on screen is the player's layout.
+    if bars and MeasureBar(BARTENDER_LAYOUT[1]) then
+        for _, entry in ipairs(BARTENDER_LAYOUT) do
+            local measured = MeasureBar(entry)
+            if entry.bar then
+                layout[entry.key] = measured or { hidden = true }
+            elseif measured and measured.shown then
+                layout[entry.key] = measured
+            end
         end
     end
-    cfg.bartender_layout = layout
+    local frames = addon.ActionBarFrames
+    if xpbars and frames then
+        for _, entry in ipairs(BARTENDER_XP_LAYOUT) do
+            layout[entry.key] = MeasureXpBar(frames[entry.frame], entry.height) or layout[entry.key]
+        end
+    end
+    cfg.bartender_layout = next(layout) and layout or nil
+end
+
+-- A stored layout no part of which DragonUI ran this session would be out of date by the time Bartender4 comes.
+local function DropStaleLayout(cfg, bars, xpbars)
+    local layout = cfg.bartender_layout
+    if not layout then return end
+    if bars then
+        for _, entry in ipairs(BARTENDER_LAYOUT) do layout[entry.key] = nil end
+    end
+    if xpbars then
+        for _, entry in ipairs(BARTENDER_XP_LAYOUT) do layout[entry.key] = nil end
+    end
+    cfg.bartender_layout = next(layout) and layout or nil
+end
+
+-- A bar DragonUI never showed (no faction watched, the XP bar at max level) goes beside the other one, or
+-- with neither into DragonUI's default slot: Bartender4 gives these bars no spot of its own.
+local function XpSeeds(layout)
+    local xp, rep = layout and layout.xp, layout and layout.rep
+    if xp and xp.cx and not rep then
+        rep = StockXpSpot(xp.cx, xp.cy + XP_STACK_GAP * xp.scale, xp.scale, STOCK_REP_HEIGHT)
+    elseif rep and rep.cx and not xp then
+        xp = StockXpSpot(rep.cx, rep.cy - XP_STACK_GAP * rep.scale, rep.scale, STOCK_XP_HEIGHT)
+    elseif not (xp and rep) then
+        xp = StockXpSpot(UIParent:GetWidth() / 2, 7 + STOCK_XP_HEIGHT / 2, 1, STOCK_XP_HEIGHT)
+        rep = StockXpSpot(xp.cx, xp.cy + XP_STACK_GAP, 1, STOCK_REP_HEIGHT)
+    end
+    return { xp = xp, rep = rep }
+end
+
+-- Bartender4 ships its XP and reputation bars off: taking them over turns them on (saved, so it can be undone
+-- in Bartender4; it then shows them only while DragonUI's main bars module is off), where DragonUI's were.
+local function SeedBartenderXpBars(bartender, layout)
+    local seeds = XpSeeds(layout)
+    for _, entry in ipairs(BARTENDER_XP_LAYOUT) do
+        local module = bartender:GetModule(entry.module, true)
+        local profile = module and module.db and module.db.profile
+        if profile then
+            profile.enabled = true
+            module:SetEnabledState(true)
+            local saved = seeds[entry.key]
+            if saved then
+                local position = profile.position or {}
+                position.point, position.x, position.y, position.scale = "TOPLEFT", saved.x, saved.y, saved.scale
+                position.growVertical, position.growHorizontal = "DOWN", "RIGHT"
+                profile.position = position
+            end
+        end
+    end
 end
 
 -- Before Bartender4's PLAYER_LOGIN builds its bars, so they come up where DragonUI's were. The bar is a 1x1
@@ -1312,6 +1408,7 @@ end
 function compatibility:SetupBartenderSession(cfg)
     local owned = self.bartenderOwned
     local runsBars = not owned.actionbars and addon:IsModuleEnabled("mainbars")
+    local runsXp = not owned.xpbars and addon:IsModuleEnabled("mainbars")
     local bartender = IsAddOnLoaded("Bartender4") and _G.Bartender4
     if bartender and bartender.GetModule then
         local runsMicro = not owned.micromenu and addon:IsModuleEnabled("micromenu")
@@ -1324,11 +1421,6 @@ function compatibility:SetupBartenderSession(cfg)
                 for _, name in ipairs(part.bartender) do
                     KeepBartenderModuleOff(bartender, name)
                 end
-            end
-        end
-        if addon:IsModuleEnabled("mainbars") then
-            for _, name in ipairs(BARTENDER_XP) do
-                KeepBartenderModuleOff(bartender, name)
             end
         end
         if runsBars then
@@ -1345,17 +1437,21 @@ function compatibility:SetupBartenderSession(cfg)
         if owned.actionbars and cfg.bartender_last_bars ~= "bartender4" and cfg.bartender_layout then
             SeedBartenderLayout(bartender, cfg.bartender_layout)
         end
+        if owned.xpbars and cfg.bartender_last_xpbars ~= "bartender4" then
+            SeedBartenderXpBars(bartender, cfg.bartender_layout)
+            self.bartenderJustHanded = self.bartenderJustHanded or {}
+            self.bartenderJustHanded.xpbars = true
+        end
     end
 
     cfg.bartender_last_bars = owned.actionbars and "bartender4" or nil
-    if runsBars then
+    cfg.bartender_last_xpbars = owned.xpbars and "bartender4" or nil
+    if runsBars or runsXp then
         local watcher = CreateFrame("Frame")
         watcher:RegisterEvent("PLAYER_LOGOUT")
-        watcher:SetScript("OnEvent", function() compatibility:SnapshotBarLayout() end)
-    elseif not owned.actionbars then
-        -- Stock bars this session: a layout from before would be out of date by the time Bartender4 comes.
-        cfg.bartender_layout = nil
+        watcher:SetScript("OnEvent", function() compatibility:SnapshotBarLayout(runsBars, runsXp) end)
     end
+    DropStaleLayout(cfg, not runsBars and not owned.actionbars, not runsXp and not owned.xpbars)
 end
 
 -- Whether Bartender4 runs any part this session.
@@ -1584,10 +1680,13 @@ local function InitializeEvents()
             local handed, owned = compatibility.bartenderJustHanded, compatibility.bartenderOwned
             if handed and owned then
                 if handed.actionbars and owned.actionbars then
-                    print("|cFF00CCFFDragonUI:|r " .. L["Bartender4 now runs your action bars. DragonUI keeps the XP bars. Switch this in DragonUI options > Modules."])
+                    print("|cFF00CCFFDragonUI:|r " .. L["Bartender4 now runs your action bars. Switch this in DragonUI options > Modules."])
                 end
                 if handed.micromenu and owned.micromenu then
                     print("|cFF00CCFFDragonUI:|r " .. L["Bartender4 now runs your micro menu and bags. Switch this in DragonUI options > Modules."])
+                end
+                if handed.xpbars and owned.xpbars then
+                    print("|cFF00CCFFDragonUI:|r " .. L["Bartender4 now runs your XP and reputation bars. Switch this in DragonUI options > Modules."])
                 end
             end
 

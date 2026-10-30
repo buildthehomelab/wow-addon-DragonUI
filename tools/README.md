@@ -5,6 +5,7 @@ Run from the repository root with Lua 5.1:
 ```sh
 lua5.1 tools/achievement_search_test.lua
 lua5.1 tools/bartender_handoff_test.lua
+lua5.1 tools/feral_ap_tooltip_test.lua
 lua5.1 tools/keybinding_search_test.lua
 lua5.1 tools/movement_speed_test.lua
 lua5.1 tools/quest_givers_test.lua

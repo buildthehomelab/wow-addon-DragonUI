@@ -12,7 +12,8 @@ local COLS = 14
 
 -- Slots per tab: 98 on a stock realm. A realm with bigger tabs (Evermore's edited Wow.exe holds up to
 -- 196) says so each time the bank opens, with an addon whisper to the player: "EvermoreGuildBank",
--- "slots:<n>". The window usually opens just before it arrives, so the realm's last count is kept
+-- "slots:<n>". The core sends it just ahead of the tab list, and the client fires GUILDBANKFRAME_OPENED
+-- from that list's handler, so it arrives before the window opens. The realm's last count is kept too
 -- (mod.DB.guild.realmSlots, by realm name) and used until the whisper says otherwise.
 local STOCK_SLOTS = MAX_GUILDBANK_SLOTS_PER_TAB or 98
 local REALM_MAX_SLOTS = 196
@@ -1042,6 +1043,8 @@ end
 -- ============================================================================
 
 function mod.ShowGuildFrame()
+    -- Without the Bagster bags nothing has set the layout db up yet
+    if not mod.DB and mod.SetupDatabase then mod.SetupDatabase() end
     if not mod.DB then return end
     if not mod.guildFrame then
         mod.guildFrame = mod.GuildFrame:New()
@@ -1057,12 +1060,39 @@ function mod.HideGuildFrame()
     end
 end
 
+-- This window replaces the stock vault with the Bagster bags, and also without them on a realm with
+-- bigger tabs: the stock Blizzard_GuildBankUI has 98 buttons, so the rest of a tab would be out of
+-- sight. The stock vault is load-on-demand; blanking its loader keeps it from ever existing.
+local stockLoadUI
+
+local function OwnsGuildBank()
+    return mod.BagsterModule.applied or addon.GetGuildBankSlots() > STOCK_SLOTS
+end
+
+-- Called when the Bagster bags are applied or restored and when the realm's count arrives.
+function mod.UpdateGuildBankOwner()
+    if OwnsGuildBank() then
+        if not stockLoadUI then
+            stockLoadUI = _G.GuildBankFrame_LoadUI
+            _G.GuildBankFrame_LoadUI = function() end
+        end
+        if _G.GuildBankFrame then
+            GuildBankFrame:UnregisterAllEvents()
+            GuildBankFrame:Hide()
+        end
+    elseif stockLoadUI then
+        _G.GuildBankFrame_LoadUI = stockLoadUI
+        stockLoadUI = nil
+        mod.HideGuildFrame()
+    end
+end
+
 do
     local watcher = CreateFrame("Frame")
     watcher:RegisterEvent("GUILDBANKFRAME_OPENED")
     watcher:RegisterEvent("GUILDBANKFRAME_CLOSED")
     watcher:SetScript("OnEvent", function(_, event)
-        if not mod.BagsterModule.applied then return end
+        if not OwnsGuildBank() then return end
         if event == "GUILDBANKFRAME_OPENED" then
             mod.ShowGuildFrame()
         else
@@ -1080,6 +1110,8 @@ do
         if not count or count < STOCK_SLOTS or count > REALM_MAX_SLOTS then return end
         local changed = count ~= addon.GetGuildBankSlots()
         heardSlots = count
+        if not mod.DB and mod.SetupDatabase then mod.SetupDatabase() end
+        mod.UpdateGuildBankOwner()
         if mod.DB and mod.DB.guild then
             mod.DB.guild.realmSlots = mod.DB.guild.realmSlots or {}
             mod.DB.guild.realmSlots[GetRealmName()] = count ~= STOCK_SLOTS and count or nil

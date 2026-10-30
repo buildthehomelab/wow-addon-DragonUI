@@ -196,5 +196,61 @@ check(addon.GetGuildBankSlots() == 98 and mod.DB.guild.realmSlots.Evermore == ni
 load()
 check(addon.GetGuildBankSlots() == 98, "and stays 98 the session after")
 
+-- Which window opens. With the Bagster bags off, DragonUI's window still replaces the stock vault
+-- once the realm says its tabs are bigger: the stock one has 98 buttons.
+local function stockLoader() end
+local watcher
+local opened
+local function openBank()
+    watcher.scripts.OnEvent(watcher, "GUILDBANKFRAME_OPENED")
+end
+local function fresh(applied, db)
+    GuildBankFrame_LoadUI = stockLoader
+    mod.BagsterModule.applied = applied
+    mod.DB = db
+    load()
+    for _, f in ipairs(frames) do
+        if f.events.GUILDBANKFRAME_OPENED then watcher = f end
+    end
+    mod.guildFrame, opened = nil, 0
+    mod.GuildFrame.New = function()
+        local w = {itemFrame = {}}
+        function w.Show() opened = opened + 1 end
+        function w.Hide() end
+        function w.SetSlotCount() end
+        return w
+    end
+end
+mod.SetupDatabase = function() mod.DB = {guild = {}} end
+
+fresh(false, false) -- no layout db: the Bagster bags never ran
+check(watcher ~= nil, "a frame watches GUILDBANKFRAME_OPENED")
+openBank()
+check(opened == 0 and GuildBankFrame_LoadUI == stockLoader, "Bagster off, 98-slot realm: the stock vault opens")
+whisper("EvermoreGuildBank", "slots:98")
+openBank()
+check(opened == 0 and GuildBankFrame_LoadUI == stockLoader, "a realm saying 98 keeps the stock vault")
+whisper("EvermoreGuildBank", "slots:196")
+check(GuildBankFrame_LoadUI ~= stockLoader, "Bagster off, realm says 196: the stock vault's loader is blanked")
+check(mod.DB and mod.DB.guild.realmSlots.Evermore == 196, "and the count is saved without the Bagster bags")
+openBank()
+check(opened == 1, "DragonUI's window opens instead")
+whisper("EvermoreGuildBank", "slots:98")
+check(GuildBankFrame_LoadUI == stockLoader, "the realm going back to 98 gives the stock vault back")
+openBank()
+check(opened == 1, "and DragonUI's window stays shut")
+
+fresh(true, {guild = {}})
+mod.UpdateGuildBankOwner()
+check(GuildBankFrame_LoadUI ~= stockLoader, "Bagster on: the stock vault's loader is blanked")
+openBank()
+check(opened == 1, "Bagster on, 98-slot realm: DragonUI's window opens")
+whisper("EvermoreGuildBank", "slots:196")
+mod.BagsterModule.applied = false
+mod.UpdateGuildBankOwner()
+check(GuildBankFrame_LoadUI ~= stockLoader, "turning Bagster off on a 196-slot realm keeps DragonUI's window")
+whisper("EvermoreGuildBank", "slots:98")
+check(GuildBankFrame_LoadUI == stockLoader, "and a 98-slot realm then gets the stock vault back")
+
 print(string.format("%d checks, %d failed", checks, failures))
 os.exit(failures == 0 and 0 or 1)

@@ -627,6 +627,9 @@ function EditorMode:Show()
     CreateClickWatcher():Show()
 
     addon:ShowAllEditableFrames()
+    if addon.compatibility then
+        addon.compatibility:SetBartenderUnlocked(true)
+    end
 
     -- Update overlay sizes after showing
     if addon.UpdateOverlaySizes then
@@ -658,6 +661,9 @@ function EditorMode:Hide()
     if clickWatcher then clickWatcher:Hide() end
 
     addon:HideAllEditableFrames(true) -- true = refresh and save positions
+    if addon.compatibility then
+        addon.compatibility:SetBartenderUnlocked(false)
+    end
     RestoreEditorStaticPopups()
 end
 

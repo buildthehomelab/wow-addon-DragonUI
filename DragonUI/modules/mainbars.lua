@@ -303,6 +303,11 @@ local function BartenderHasBars()
     return addon.compatibility and addon.compatibility.bartenderActive or false
 end
 
+-- Also fixed at load: Bartender4 then holds the stock XP and reputation bars, art and all.
+local function BartenderHasXpBars()
+    return addon.compatibility and addon.compatibility:BartenderRuns("xpbars") or false
+end
+
 -- Clause order is priority: vehicle/possess (11) beats manual paging, which beats forms.
 local PAGE_CLAUSES_SHARED = "[bonusbar:5] 11; [bar:2] 2; [bar:3] 3; [bar:4] 4; [bar:5] 5; [bar:6] 6;"
 
@@ -1090,6 +1095,7 @@ end
 
 -- No level-cap test: custom servers show 53/1 at the cap, and noop kills MainMenuExpBar's events.
 local function IsXpBarVisible()
+    if BartenderHasXpBars() then return false end
     local cfg = GetXpRepConfig()
     if cfg and cfg.hide_xp then return false end
     local maxXP = UnitXPMax("player")
@@ -1100,10 +1106,16 @@ end
 
 -- The defaults leave room for one bar: a slot up with XP and rep, a short drop with neither (max level).
 local function GetDualBarVerticalOffset()
+    local slot = GetXpBarHeight() + 2
+    -- Bartender4's XP bars start in the slots DragonUI's had: the action bars keep clear of both while both show.
+    if BartenderHasXpBars() then
+        local maxXP = UnitXPMax("player")
+        local levelling = maxXP and maxXP > 0 and (UnitXP("player") or 0) < maxXP
+        return (levelling and GetWatchedFactionInfo() ~= nil) and slot or 0
+    end
     local xpShown = IsXpBarVisible()
     if xpShown ~= (GetWatchedFactionInfo() ~= nil) then return 0 end
     if not IsWidgetAtDefaultPosition("xpbar") or not IsWidgetAtDefaultPosition("repbar") then return 0 end
-    local slot = GetXpBarHeight() + 2
     return xpShown and slot or -math.min(slot, EMPTY_BARS_DROP)
 end
 
@@ -1127,8 +1139,10 @@ function MainMenuBarMixin:SetupStatusBars()
     end
 
     -- Hide Blizzard XP/Rep text by default (both styles manage their own)
-    if MainMenuBarExpText then MainMenuBarExpText:Hide() end
-    if ReputationWatchBarText then ReputationWatchBarText:Hide() end
+    if not BartenderHasXpBars() then
+        if MainMenuBarExpText then MainMenuBarExpText:Hide() end
+        if ReputationWatchBarText then ReputationWatchBarText:Hide() end
+    end
 end
 
 -- 3.3.5a StatusBars squash the whole texture into the fill; crop it so the capped art keeps its shape.
@@ -1879,6 +1893,7 @@ local function NudgeStatusBarFill(bar)
 end
 
 local function UpdateBarPositions()
+    if BartenderHasXpBars() then return end
     local cfg = GetXpRepConfig() or {}
     local style = GetXpBarStyle()
     local barW = cfg.bar_width or 466
@@ -1980,6 +1995,7 @@ local function RegisterXpRepVisibility()
 end
 
 local function RefreshXpRepBars()
+    if BartenderHasXpBars() then return end
     local style = GetXpBarStyle()
     ConnectBarsToEditor()
     if style == "dragonflightui" then
@@ -2010,13 +2026,19 @@ local function RemoveBlizzardFrames()
     DisableMaxLevelBar()
     
     local blizzFrames = {MainMenuBarPerformanceBar, MainMenuBarTexture0, MainMenuBarTexture1, MainMenuBarTexture2,
-                         MainMenuBarTexture3, MainMenuBarMaxLevelBar, ReputationXPBarTexture1,
-                         ReputationXPBarTexture2, ReputationXPBarTexture3, ReputationWatchBarTexture1,
-                         ReputationWatchBarTexture2, ReputationWatchBarTexture3, MainMenuXPBarTexture1,
-                         MainMenuXPBarTexture2, MainMenuXPBarTexture3, SlidingActionBarTexture0,
+                         MainMenuBarTexture3, MainMenuBarMaxLevelBar, SlidingActionBarTexture0,
                          SlidingActionBarTexture1, BonusActionBarTexture0, BonusActionBarTexture1,
                          ShapeshiftBarLeft, ShapeshiftBarMiddle, ShapeshiftBarRight, PossessBackground1,
                          PossessBackground2}
+    -- The stock XP and reputation art, which Bartender4's XP bars draw with.
+    if not BartenderHasXpBars() then
+        local xpArt = {ReputationXPBarTexture1, ReputationXPBarTexture2, ReputationXPBarTexture3,
+                       ReputationWatchBarTexture1, ReputationWatchBarTexture2, ReputationWatchBarTexture3,
+                       MainMenuXPBarTexture1, MainMenuXPBarTexture2, MainMenuXPBarTexture3}
+        for index = 1, #xpArt do
+            blizzFrames[#blizzFrames + 1] = xpArt[index]
+        end
+    end
 
     for _, frame in pairs(blizzFrames) do
         if frame then
@@ -2075,7 +2097,9 @@ local function CreateActionBarFrames()
     addon.ActionBarFrames.bottombarright = addon.CreateUIFrame(brW * brScale, brH * brScale, "BottomBarRight")
 
     -- Separate XP and Rep bar editor frames (allows independent movement)
-    CreateXpRepFrames(addon.ActionBarFrames.mainbar:GetWidth())
+    if not BartenderHasXpBars() then
+        CreateXpRepFrames(addon.ActionBarFrames.mainbar:GetWidth())
+    end
 end
 
 local function PositionActionBarsToContainers_Initial()
@@ -2524,7 +2548,9 @@ local function ApplyMainbarsSystem()
     end
 
     -- Set up XP/Rep bar system
-    SetupXpRepBars()
+    if not BartenderHasXpBars() then
+        SetupXpRepBars()
+    end
 
     -- Position action bars immediately
     PositionActionBarsToContainers_Initial()
@@ -2602,6 +2628,8 @@ local function StartXpRepEvents()
                 blizzardBarArtRemoved = true
                 RemoveBlizzardFrames()
             end
+            -- Only the bar art is ours: the XP bars and their offset are Bartender4's.
+            if BartenderHasXpBars() then return end
             ConnectBarsToEditor()
             if style == "dragonflightui" then
                 UpdateDragonflightUIXPBar()
@@ -2616,6 +2644,12 @@ local function StartXpRepEvents()
                 if ReputationWatchBarText then ReputationWatchBarText:Hide() end
             end
             NotifyDualBarOffsetChanged()
+        elseif BartenderHasXpBars() then
+            -- A watched faction or the level cap moves the action bars over Bartender4's XP bars; after combat
+            -- the secure ones catch up.
+            if event == "UPDATE_FACTION" or event == "PLAYER_LEVEL_UP" or event == "PLAYER_REGEN_ENABLED" then
+                NotifyDualBarOffsetChanged()
+            end
         elseif event == "PLAYER_LEVEL_UP" then
             -- Player leveled up — may have reached max level
             if style == "dragonflightui" then
@@ -2657,13 +2691,18 @@ local function StartXpRepEvents()
     end)
 end
 
--- Bartender4 runs the action bars: only the XP and reputation bars stay DragonUI's.
+-- Bartender4 runs the action bars: only the XP and reputation bars stay DragonUI's, unless it runs those too.
 local function InitializeXpRepOnly()
     if not IsModuleEnabled() or MainbarsModule.initialized then
         return
     end
 
     ExportBarApi()
+    if BartenderHasXpBars() then
+        MainbarsModule.initialized = true
+        MainbarsModule.applied = true
+        return
+    end
     DisableMaxLevelBar()
     if MainMenuBarExpText then MainMenuBarExpText:Hide() end
     if ReputationWatchBarText then ReputationWatchBarText:Hide() end

@@ -83,7 +83,7 @@ WTF/Account/<YourAccount>/SavedVariables/DragonUI*
 ### Frames And Bars
 
 - 🎯 Action bars with configurable grid layouts, visibility rules, and button spacing.
-- 🍺 With [Bartender4](https://www.wowace.com/projects/bartender4) installed, Bartender4 runs the action, pet, stance, totem and vehicle bars while DragonUI keeps its micro menu, bags and XP/reputation bars (Bartender4's own micro menu and bag bar stay off). Options → Modules → Use Bartender4 switches back, and DragonUI's bars return by themselves if Bartender4 is removed.
+- 🍺 With [Bartender4](https://www.wowace.com/projects/bartender4) installed, Options → Modules → Bartender4 picks who runs the action bars (main, pet, stance, totem, vehicle), the micro menu and bags, and the XP and reputation bars; by default Bartender4 takes the action bars and DragonUI keeps the rest. Handing the XP and reputation bars to Bartender4 turns its (normally off) XP and reputation bars on in its own settings. Whatever DragonUI runs, Bartender4's matching modules stay off for the session without changing its settings. Bartender4's bars first come up where DragonUI's were, editor mode unlocks them too, and DragonUI's bars return by themselves if Bartender4 is removed.
 - 💚 Unit frames for player, target, focus, party, pet, boss, ToT, and ToF, with elite dragon decoration, class portrait icons, fat health bar mode, and a portrait-off mode (beta).
 - 🩹 Unit Frame Layers: heal prediction, absorb shields, and animated health loss overlays.
 - 🔮 Castbars: custom castbars for player, target, and focus, with simple and detailed display modes, plus a built-in latency indicator on the player castbar.

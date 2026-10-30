@@ -477,6 +477,15 @@ local defaults = {
             new_glow_color = { 1, 1, 1, 1 }, -- Glow colour when new_glow_color_mode is "user"
             new_clear_on_close = true, -- Closing a bag clears its glows (Bagster: closing the inventory clears all)
             new_ignore_junk = false, -- Never mark poor-quality items as new
+            triage_mode = "loot", -- Loot triage marks: "loot" (loot won't fit), "nearly" (bags nearly full), "always", "off"
+            triage_style = "border", -- "border" (static gold border) or "pulse" (pulsing gold border)
+            triage_quality = 1, -- Highest quality suggested for deletion: 0 poor, 1 common, 2 uncommon
+            triage_marks = 3, -- How many of the cheapest items get numbered
+            triage_keep_consumables = true, -- Never suggest potions, food, bandages, ammo
+            triage_keep_materials = true, -- Never suggest trade goods, gems, reagents
+            triage_keep_tools = true, -- Never suggest profession tools or fishing poles
+            triage_keep_recipes = true, -- Never suggest recipes
+            triage_sort = true, -- Bag sort puts suggested items last, cheapest in the last slot
         },
 
         xprepbar = {

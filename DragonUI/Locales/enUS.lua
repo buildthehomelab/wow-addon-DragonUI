@@ -1292,3 +1292,7 @@ L["XP Rate"] = true
 L["Realm default"] = true
 L["Gain experience"] = true
 L["More settings..."] = true
+
+-- Loot triage (bags_triage.lua)
+L["Loot Triage will never suggest deleting %s."] = true
+L["Loot Triage may suggest deleting %s again."] = true

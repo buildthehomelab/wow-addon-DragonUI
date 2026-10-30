@@ -964,6 +964,8 @@ local function LearnItem(itemID)
     facts.subclassRank = siblings and siblings[facts.subclass] or UNRANKED
     facts.isGear = facts.class == weaponClassName or facts.class == armorClassName
     facts.gearRank = gearRankByEquipLoc[facts.equipLoc] or 0
+    local triage = addon.LootTriage
+    facts.triagePrice = triage and triage:SortsJunkLast() and triage:UnitPrice(itemID) or nil
     itemFacts[itemID] = facts
     return facts
 end
@@ -1113,11 +1115,26 @@ local function TopUpStacks(donorBags, receiverBags, fullDonorsAllowed)
     end
 end
 
+-- Stack value of a loot triage delete candidate in the inventory bags, else nil.
+local function TriageValue(cell)
+    local price = itemFacts[cell.item].triagePrice
+    if price and cell.bag >= BACKPACK_CONTAINER and cell.bag <= NUM_BAG_SLOTS then
+        return price * cell.qty
+    end
+end
+
 -- Not a strict weak order (unranked classes, equal names, empties); table.sort's pass order decides those.
 local function ComesBefore(a, b)
     local itemA, itemB = a.item, b.item
     if not itemB then return itemA ~= nil end
     if not itemA then return false end
+    -- Loot triage candidates go last, the cheapest stack in the very last slot.
+    local va, vb = TriageValue(a), TriageValue(b)
+    if va or vb then
+        if not va then return true end
+        if not vb then return false end
+        if va ~= vb then return va > vb end
+    end
     if itemA == itemB then
         if a.qty ~= b.qty then return a.qty < b.qty end
         if a.bag ~= b.bag then return a.bag < b.bag end

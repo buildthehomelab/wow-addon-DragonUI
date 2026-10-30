@@ -618,6 +618,7 @@ local defaults = {
             blip_skin = true, -- true = new/modern style, false = old/classic Blizzard style
             ping_sender = true, -- Name of whoever pinged the minimap, in their class color
             movement_speed = true, -- Current movement speed under the minimap (widgets.movespeed once dragged)
+            latency = true, -- Server round trip under the speed line (widgets.latency once dragged)
             tracking_icons = true,
             zoom_buttons = false,
             calendar = true,

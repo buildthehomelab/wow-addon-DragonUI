@@ -195,6 +195,14 @@ local function BuildModulesTab(scroll)
     end
 
     -- ====================================================================
+    -- SHADOWED UNIT FRAMES (enabled in the AddOns list: nothing to pick here)
+    -- ====================================================================
+    if addon.compatibility and addon.compatibility.shadowUFRuns then
+        local sufSection = C:AddSection(scroll, "Shadowed Unit Frames")
+        C:AddDescription(sufSection, LO["Shadowed Unit Frames runs your unit frames on this character: player, target, focus, their targets, pet, party and boss frames, the combo point orbs and the target and focus cast bars. DragonUI's settings for them are not used. Use its options (/suf), or disable Shadowed Unit Frames in the AddOns list on the character select screen to get DragonUI's back."])
+    end
+
+    -- ====================================================================
     -- UI SYSTEMS
     -- ====================================================================
     local uiSection = C:AddSection(scroll, LO["UI Systems"])

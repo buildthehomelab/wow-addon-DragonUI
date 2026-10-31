@@ -171,6 +171,7 @@ L["Micro menu and bags"] = true
 L["With Bartender4's, the Pets & Mounts and Professions buttons are not shown."] = true
 L["Bartender4 runs your action bars this session, so DragonUI's bar settings here are not used. Use Bartender4's options (/bt4), or set Action bars to DragonUI under Bartender4 in the Modules tab."] = true
 L["Bartender4 runs this. Set it to DragonUI under Bartender4 in this tab to change it."] = true
+L["Shadowed Unit Frames runs your unit frames on this character: player, target, focus, their targets, pet, party and boss frames, the combo point orbs and the target and focus cast bars. DragonUI's settings for them are not used. Use its options (/suf), or disable Shadowed Unit Frames in the AddOns list on the character select screen to get DragonUI's back."] = true
 L["Micro menu and bags styling."] = true
 L["Show cooldown timers on action buttons."] = true
 L["Minimap styling, tracking icons, and calendar."] = true

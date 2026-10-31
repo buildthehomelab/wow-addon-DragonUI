@@ -1,6 +1,7 @@
 -- Copyright (c) 2026 NeticSoul. Licensed under the MIT License; see LICENSE.
 
 local addon = select(2, ...)
+if addon.compatibility.shadowUFRuns then return end -- Shadowed Unit Frames runs them (compatibility.lua)
 local UF = addon.UF
 local L = addon.L
 

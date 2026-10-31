@@ -8,6 +8,7 @@
 ]]
 
 local _, addon = ...
+if addon.compatibility.shadowUFRuns then return end -- Shadowed Unit Frames runs them (compatibility.lua)
 local UF = addon.UF
 
 UF.TargetStyle = {}

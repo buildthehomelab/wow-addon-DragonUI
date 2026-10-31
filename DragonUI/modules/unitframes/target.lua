@@ -8,6 +8,7 @@
 ]]
 
 local addon = select(2, ...)
+if addon.compatibility.shadowUFRuns then return end -- Shadowed Unit Frames runs them (compatibility.lua)
 local UF = addon.UF
 
 -- ============================================================================

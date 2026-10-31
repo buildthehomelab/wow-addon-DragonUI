@@ -2,6 +2,7 @@
 
 -- Portrait-off ("compact") layouts: each portrait kind with its art minus the ring, in the same descriptor.
 local addon = select(2, ...)
+if addon.compatibility.shadowUFRuns then return end -- Shadowed Unit Frames runs them (compatibility.lua)
 local UF = addon.UF
 
 local ART = "Interface\\AddOns\\DragonUI\\Textures\\UnitFrames\\Compact\\"

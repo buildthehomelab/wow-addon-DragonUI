@@ -3,6 +3,7 @@
 -- Combo points: retail's orb bar under the player frame and/or small orbs on the target frame.
 
 local addon = select(2, ...)
+if addon.compatibility.shadowUFRuns then return end -- Shadowed Unit Frames runs them (compatibility.lua)
 local L = addon.L
 local UF = addon.UF
 

@@ -196,6 +196,8 @@ end
 -- ACTIVE SUB-TAB STATE
 -- ============================================================================
 
+local SHADOWUF_NOTICE = "Shadowed Unit Frames runs your unit frames on this character: player, target, focus, their targets, pet, party and boss frames, the combo point orbs and the target and focus cast bars. DragonUI's settings for them are not used. Use its options (/suf), or disable Shadowed Unit Frames in the AddOns list on the character select screen to get DragonUI's back."
+
 local activeSubTab = "player"
 
 local subTabs = {
@@ -973,6 +975,11 @@ end
 -- ============================================================================
 
 local function BuildUnitframesTab(scroll)
+    -- None of DragonUI's unit frames were built this session (compatibility.lua).
+    if addon.compatibility and addon.compatibility.shadowUFRuns then
+        C:AddLabel(scroll, "|cffFF6600" .. LO[SHADOWUF_NOTICE] .. "|r", { color = C.Theme.warning })
+        return
+    end
     -- One art style for every unit frame, so it sits above the per-frame sub-tabs.
     local style = C:AddSection(scroll, LO["Style"])
     local refreshSkins = function()

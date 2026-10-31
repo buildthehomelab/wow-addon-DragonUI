@@ -140,6 +140,8 @@ local function GetConfig(unitType)
 end
 
 local function IsEnabled(unitType)
+    -- The target and focus bars sit on their unit frames, which Shadowed Unit Frames hides; it has its own.
+    if unitType ~= "player" and addon.compatibility.shadowUFRuns then return false end
     local cfg = GetConfig(unitType)
     return cfg and cfg.enabled and not cfg.hide
 end

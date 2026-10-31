@@ -305,6 +305,9 @@ L["Bartender4 now runs your action bars. Switch this in DragonUI options > Modul
 L["Bartender4 now runs your XP and reputation bars. Switch this in DragonUI options > Modules."] = true
 L["Bartender4 now runs your micro menu and bags. Switch this in DragonUI options > Modules."] = true
 
+-- Shadowed Unit Frames hand-off
+L["Shadowed Unit Frames runs your unit frames. Disable it in the AddOns list to get DragonUI's back."] = true
+
 -- ============================================================================
 -- STATIC POPUPS (shared between modules)
 -- ============================================================================

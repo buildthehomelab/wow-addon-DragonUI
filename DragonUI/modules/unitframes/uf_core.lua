@@ -185,6 +185,7 @@ function UF.GetConfig(unitKey)
 end
 
 function UF.IsEnabled(unitKey)
+    if addon.compatibility.shadowUFRuns then return false end
     local config = UF.GetConfig(unitKey)
     return config.enabled ~= false
 end

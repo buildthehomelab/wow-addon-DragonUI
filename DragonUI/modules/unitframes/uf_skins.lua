@@ -2,6 +2,7 @@
 
 -- Modules read these tables at apply time, never into a file local, so a style switch is a refresh.
 local addon = select(2, ...)
+if addon.compatibility.shadowUFRuns then return end -- Shadowed Unit Frames runs them (compatibility.lua)
 local UF = addon.UF
 
 local ART = "Interface\\AddOns\\DragonUI\\Textures\\UnitFrames\\"

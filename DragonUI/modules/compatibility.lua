@@ -5,6 +5,11 @@ local compatibility = {}
 addon.compatibility = compatibility
 local L = addon.L
 
+-- Shadowed Unit Frames, when enabled for the character, runs the unit frames. It is an OptionalDep, so it has
+-- loaded by now, and DragonUI's settings have not: the choice is the AddOns list, not a DragonUI option. The unit
+-- frame files return at load, before they hook anything; uf_core and text_system stay as helpers for other modules.
+compatibility.shadowUFRuns = IsAddOnLoaded("ShadowedUnitFrames") and true or false
+
 --[[
 * DragonUI Compatibility Manager
 * 
@@ -1688,6 +1693,15 @@ local function InitializeEvents()
                 if handed.xpbars and owned.xpbars then
                     print("|cFF00CCFFDragonUI:|r " .. L["Bartender4 now runs your XP and reputation bars. Switch this in DragonUI options > Modules."])
                 end
+            end
+
+            -- Said on the character's first load with Shadowed Unit Frames, and again after a load without it.
+            local char = addon.db and addon.db.char
+            if char then
+                if compatibility.shadowUFRuns and not char.shadowuf_noted then
+                    print("|cFF00CCFFDragonUI:|r " .. L["Shadowed Unit Frames runs your unit frames. Disable it in the AddOns list to get DragonUI's back."])
+                end
+                char.shadowuf_noted = compatibility.shadowUFRuns or nil
             end
 
         elseif event == "CVAR_UPDATE" then

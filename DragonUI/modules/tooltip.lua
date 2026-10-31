@@ -428,6 +428,10 @@ local function EnsureTooltipAnchorHook()
     GameTooltip:HookScript("OnTooltipSetUnit", function(self)
         followsWorldUnit = cursorFollow and self:IsOwned(UIParent) and self:IsUnit("mouseover") and true or false
     end)
+    -- Unit frames (UnitFrame_OnLeave) fade their tip out over a few seconds; a cursor tip should just go.
+    hooksecurefunc(GameTooltip, "FadeOut", function(self)
+        if cursorFollow then self:Hide() end
+    end)
     GameTooltip:HookScript("OnUpdate", function(self)
         if not cursorFollow then return end
         -- The engine's ANCHOR_CURSOR tip goes the moment the world unit is left; ours would linger 2-3 s like a corner tip.
@@ -444,7 +448,10 @@ local function EnsureTooltipAnchorHook()
 
         if IsTooltipCursorAnchored() then
             local offsetX, offsetY = GetTooltipCursorOffsets()
-            if offsetX == 0 and offsetY == 0 then
+            -- World objects (campfires, chests, herbs) have no unit to watch, so only the engine knows when they are
+            -- left; its own cursor tip vanishes then, where ours would linger. They sit at the cursor without offsets.
+            local worldObject = parent == UIParent and GetMouseFocus() == WorldFrame and not UnitExists("mouseover")
+            if (offsetX == 0 and offsetY == 0) or worldObject then
                 -- The engine's own follow, so setups without offsets place it exactly as before.
                 tooltip:SetOwner(parent, "ANCHOR_CURSOR")
             else

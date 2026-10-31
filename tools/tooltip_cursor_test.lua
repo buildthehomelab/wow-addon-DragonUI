@@ -1,8 +1,11 @@
 -- Run from the repository root with Lua 5.1. Mocks GameTooltip, the mouseover unit and the cursor.
 RAID_CLASS_COLORS = {}
 UIParent = { name = 'UIParent' }
+WorldFrame = { name = 'WorldFrame' }
 local mouseover = false
+local focus = WorldFrame
 function UnitExists(unit) return unit == 'mouseover' and mouseover end
+function GetMouseFocus() return focus end
 function GetCursorPosition() return 500, 400 end
 
 local frames = {}
@@ -33,6 +36,7 @@ function tt:IsOwned(frame) return self.owner == frame end
 function tt:SetUnit(unit) self.unit = unit; self.shown = true; if self.hooks.OnTooltipSetUnit then self.hooks.OnTooltipSetUnit(self) end end
 function tt:IsUnit(unit) return self.unit == unit end
 function tt:Hide() self.shown = false end
+function tt:FadeOut() end -- the client holds the tip for a few seconds, then fades it
 function tt:ClearAllPoints() end
 function tt:SetPoint(...) self.point = { ... } end
 function tt:GetEffectiveScale() return 1 end
@@ -62,16 +66,25 @@ mouseover = false
 tt:Update()
 assert(not tt.shown, 'Tip should go the moment the world unit is left')
 
--- A unit frame hover (owned by the frame) is left to its own OnLeave fade.
+-- A unit frame hover follows the cursor too, and goes at once when UnitFrame_OnLeave fades it.
 local frame = { name = 'PlayerFrame' }
+focus = frame
 GameTooltip_SetDefaultAnchor(tt, frame)
 tt:SetUnit('player')
 tt:Update()
-assert(tt.shown, 'Unit frame tips are not the world tip')
+assert(tt.shown and tt.anchor == 'ANCHOR_NONE', 'Unit frame tips follow the cursor')
+tt:FadeOut()
+assert(not tt.shown, 'Unit frame tip should go at once instead of fading out')
 
--- A world object (no unit) never had a mouseover unit to lose.
+-- A button anchored to UIParent (not the world) still follows with the offsets.
 GameTooltip_SetDefaultAnchor(tt, UIParent)
-tt.unit = nil
+assert(tt.anchor == 'ANCHOR_NONE', 'UI tips owned by UIParent keep the offset follow')
+
+-- A world object (campfire, chest: no unit) gets the engine's cursor tip, which the engine hides on leave.
+focus = WorldFrame
+GameTooltip_SetDefaultAnchor(tt, UIParent)
+assert(tt.anchor == 'ANCHOR_CURSOR', 'World object tips should use the engine cursor anchor')
+tt:FadeOut()
 tt.shown = true
 tt:Update()
 assert(tt.shown, 'Object tips are left to the engine')

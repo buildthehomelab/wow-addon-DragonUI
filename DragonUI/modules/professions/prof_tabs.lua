@@ -201,7 +201,7 @@ function Tabs.Rebuild()
     addHostTabs("overview")
     for _, prof in ipairs(list) do
         if #entries >= MAX_TABS then break end
-        entries[#entries + 1] = { label = prof.craftSpell, icon = prof.icon or Prof.IconFor(prof.entry), prof = prof }
+        entries[#entries + 1] = { label = prof.craftSpell, icon = prof.craftIcon or prof.icon or Prof.IconFor(prof.entry), prof = prof }
     end
     addHostTabs("professions")
     Tabs.count = #entries

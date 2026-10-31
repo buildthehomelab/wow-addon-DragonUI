@@ -134,6 +134,8 @@ function Prof.Discover()
                 p.icon = GetSpellTexture(ids[id], BOOKTYPE_SPELL)
             end
             if hit.role == "craft" or (hit.role == "rank" and e.crafts) then p.craftSpell = GetSpellInfo(id) end
+            -- A craft spell of its own (Mining's Smelting): the tab opens it, so it shows its icon.
+            if hit.role == "craft" then p.craftIcon = GetSpellTexture(ids[id], BOOKTYPE_SPELL) end
             if hit.role == "extra" then p.spells[#p.spells + 1] = GetSpellInfo(id) end
         end
     end

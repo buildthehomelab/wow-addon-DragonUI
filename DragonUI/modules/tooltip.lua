@@ -296,6 +296,7 @@ local function GetTooltipCursorOffsets()
 end
 
 local cursorFollow = false
+local followsWorldUnit = false -- the followed tip shows the mouseover unit from the 3D world
 local followX, followY
 
 local function PositionTooltipAtCursor(tooltip)
@@ -422,9 +423,20 @@ local function EnsureTooltipAnchorHook()
     -- Any other SetOwner (bags, buttons, custom anchors) takes the tooltip back from the cursor follow.
     hooksecurefunc(GameTooltip, "SetOwner", function()
         cursorFollow = false
+        followsWorldUnit = false
+    end)
+    GameTooltip:HookScript("OnTooltipSetUnit", function(self)
+        followsWorldUnit = cursorFollow and self:IsOwned(UIParent) and self:IsUnit("mouseover") and true or false
     end)
     GameTooltip:HookScript("OnUpdate", function(self)
-        if cursorFollow then PositionTooltipAtCursor(self) end
+        if not cursorFollow then return end
+        -- The engine's ANCHOR_CURSOR tip goes the moment the world unit is left; ours would linger 2-3 s like a corner tip.
+        if followsWorldUnit and not UnitExists("mouseover") then
+            followsWorldUnit = false
+            self:Hide()
+            return
+        end
+        PositionTooltipAtCursor(self)
     end)
 
     hooksecurefunc("GameTooltip_SetDefaultAnchor", function(tooltip, parent)

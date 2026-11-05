@@ -12,6 +12,9 @@
     
     <!-- Action Bar Sub-modules (stance, vehicle, petbar, multicast) -->
     <Include file="actionbars\actionbars.xml"/>
+
+    <!-- Controller buttons on the action bars, with the controller DLL -->
+    <Script file="controller.lua"/>
     
     <!-- Pets & Mounts window (its micro button must exist before micromenu.lua loads) -->
     <Script file="..\data\companion_traits.lua"/>

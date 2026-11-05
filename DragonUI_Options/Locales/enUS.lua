@@ -1834,3 +1834,11 @@ L["This realm doesn't keep a personal XP rate, or hasn't answered yet."] = true
 L["XP gain is off: this character doesn't level."] = true
 L["Your rate is %s. It grows with your level until level %d, so the first levels don't fly by: %s right now."] = true
 L["Your rate is %s."] = true
+
+-- Controller layout
+L["Controller Layout"] = true
+L["With the controller DLL installed, pressing a controller button shows its buttons on the main and bottom bars, and the abilities of the triggers you hold light up. A Keyboard button by the bars switches back."] = true
+L["No controller support found in this game client."] = true
+L["Enable Controller Layout"] = true
+L["Switch When a Controller Button Is Pressed"] = true
+L["Off: the bars keep the keyboard layout until you click the Controller button by the bars."] = true

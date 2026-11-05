@@ -156,6 +156,38 @@ local function BuildEnhancementsTab(scroll)
     AddRangeColor("oom_color", LO["Not Enough Mana Color"], { r = 0.5, g = 0.5, b = 1.0 })
 
     -- ====================================================================
+    -- CONTROLLER LAYOUT
+    -- ====================================================================
+    C:AddSpacer(scroll)
+    local controllerSection = C:AddSection(scroll, LO["Controller Layout"])
+
+    C:AddDescription(controllerSection, LO["With the controller DLL installed, pressing a controller button shows its buttons on the main and bottom bars, and the abilities of the triggers you hold light up. A Keyboard button by the bars switches back."])
+    if not _G.C_Controller then
+        C:AddLabel(controllerSection, "|cff888888" .. LO["No controller support found in this game client."] .. "|r")
+    end
+
+    C:AddModuleToggle(controllerSection, {
+        label = LO["Enable Controller Layout"],
+        moduleName = "controller",
+        callback = function()
+            if addon.RefreshControllerSystem then addon.RefreshControllerSystem() end
+        end,
+        -- Rebuild the tab so the switch toggle below follows.
+        after = function() Panel:SelectTab("enhancements") end,
+    })
+
+    C:AddToggle(controllerSection, {
+        label = LO["Switch When a Controller Button Is Pressed"],
+        desc = LO["Off: the bars keep the keyboard layout until you click the Controller button by the bars."],
+        getFunc = function() return GetModuleField("controller", "auto") ~= false end,
+        setFunc = function(val)
+            EnsureModuleTable("controller").auto = val
+        end,
+        disabled = function() return not IsEnabled("controller") end,
+        requiresReload = false,
+    })
+
+    -- ====================================================================
     -- KEY PRESS (fire abilities on key down)
     -- ====================================================================
     C:AddSpacer(scroll)

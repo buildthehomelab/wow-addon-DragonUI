@@ -4,10 +4,10 @@
 local addon = select(2, ...)
 local WM = addon.WorldMap
 
--- A client patch that adds the Riverlands zone (WoW Forever's Riverglades) also brings Forever's Redridge map, drawn
--- 110.417 yards further east and with its own overlays. The tables in the other data files describe the client's own
--- Redridge, so on such a client this replaces its fog and moves its pins. From WoW Forever's WorldMapOverlay and
--- UiMapAssignment. Without that patch nothing here runs.
+-- A client patch can bring WoW Forever's Redridge map, drawn 110.417 yards further east and with its own overlays. The
+-- tables in the other data files describe the client's own Redridge, so on such a client this replaces its fog and moves
+-- its pins. From WoW Forever's WorldMapOverlay and UiMapAssignment. Forever's Render's Camp overlay is four files and the
+-- client's two, so the third file says which map this client has. Without it nothing here runs.
 local REDRIDGE_SHIFT = -110.417 / 2170.834
 
 local REDRIDGE_FOG = {
@@ -25,11 +25,8 @@ local REDRIDGE_FOG = {
 }
 
 function WM.ApplyPatchedZones()
-    local patched = false
-    for _, zone in ipairs({ GetMapZones(2) }) do
-        patched = patched or zone == "Riverglades"
-    end
-    if not patched then return end
+    local probe = CreateFrame("Frame"):CreateTexture()
+    if not probe:SetTexture("Interface\\WorldMap\\Redridge\\RENDERSCAMP3") then return end
     WM.FogData.Redridge = REDRIDGE_FOG
     for _, entry in ipairs(WM.FlightPoints.Redridge) do entry.x = entry.x + REDRIDGE_SHIFT end
     for _, inn in ipairs(WM.Inns.Redridge) do inn[1] = inn[1] + REDRIDGE_SHIFT end

@@ -1,14 +1,17 @@
 -- Licensed under the MIT License; see LICENSE.
 
 -- Controller layout. With the controller DLL (wow-client-controller) next to Wow.exe, pressing a controller button
--- turns the main, bottom left and bottom right bars into the controller's: each slot shows the button and triggers
--- that use it, the slots of the trigger layer being held stand out and the rest dim, and the controller's own cross of
--- abilities steps aside since the bars now say the same thing. A button by the bars swaps back to the keyboard
--- layout, and while a controller is plugged in, swaps to the controller one again. Without the DLL there's no
--- C_Controller and none of this shows.
+-- switches to the controller layout. By default that's WoW Forever's: the action bars, micro menu and bags make way
+-- and the controller's own cross of abilities is all there is. With "Hide the Action Bars" off, the bars stay and
+-- become the controller's instead: each slot of the main, bottom left and bottom right bars shows the button and
+-- triggers that use it, the slots of the trigger layer being held stand out and the rest dim, and the controller's
+-- cross steps aside since the bars now say the same thing. A button by the bars swaps back to the keyboard layout,
+-- and while a controller is plugged in, swaps to the controller one again. Without the DLL there's no C_Controller
+-- and none of this shows.
 --
--- Everything here is our own frames and the hotkey text's alpha, so it works the same in combat. The controller only
--- hands out plain values and never calls into DragonUI; this file polls it.
+-- Everything here is our own frames, the hotkey text's alpha and the fade engine's alpha and click-through, so it
+-- works the same in combat. The controller only hands out plain values and never calls into DragonUI; this file
+-- polls it.
 
 local addon = select(2, ...)
 local L = addon.L
@@ -32,9 +35,15 @@ local TRIGGER_SIZE = 13
 local DIM_ALPHA = 0.6
 local WHITE = "Interface\\Buttons\\WHITE8X8"
 local SWAP_HEIGHT = 20
+-- What makes way for the controller's cross: the fade engine's keys for the action bars (the extra one too), micro
+-- menu and bags. The pet, stance, totem and XP bars stay, since the cross has nothing in their place. Bars another
+-- addon runs (Bartender4's micro menu and bags, say) aren't DragonUI's to hide.
+local HIDDEN_KEYS = { "main", "bottom_left", "bottom_right", "right", "left", "extrabar1", "micro", "bag" }
 
 local overlays = {}      -- action button -> its overlay
 local layout = "keyboard"
+local barsHidden = false     -- the HIDDEN_KEYS are hidden
+local overlaysShown = false  -- the bars show the controller's buttons (and the controller hides its cross)
 local wasActive = false
 local paintedFamily, paintedLayer
 local swap, mover
@@ -143,7 +152,7 @@ end
 
 -- Whether the controller layout has this button's hotkey text hidden; buttons.lua asks before it shows one.
 function addon.ControllerOwnsHotkey(button)
-    return layout == "controller" and overlays[button] ~= nil and overlays[button].position ~= nil
+    return overlaysShown and overlays[button] ~= nil and overlays[button].position ~= nil
 end
 
 local function ApplyHotkeys()
@@ -154,7 +163,7 @@ local function ApplyHotkeys()
         end
     end
     -- Puts back the keyboard text exactly as the Buttons settings have it (some hide it).
-    if layout ~= "controller" and addon.RefreshAllHotkeys then
+    if not overlaysShown and addon.RefreshAllHotkeys then
         addon.RefreshAllHotkeys()
     end
 end
@@ -170,17 +179,42 @@ local function UpdateSwapButton()
     mover:SetSize(swap:GetWidth(), SWAP_HEIGHT)
 end
 
-local function SetLayout(kind)
-    if layout == kind then return end
-    layout = kind
+-- The bars go unless asked not to. Editor mode brings them back so they can still be moved.
+local function WantsBarsHidden()
+    if layout ~= "controller" then return false end
+    local settings = Settings()
+    if settings and settings.hide_bars == false then return false end
+    if addon.EditorMode and addon.EditorMode:IsActive() then return false end
+    return true
+end
+
+-- Brings the bars, overlays and the controller's cross in line with the layout and settings; cheap when nothing
+-- changed, so the driver runs it every frame. Secure buttons can't start or stop taking clicks in combat, so the bars
+-- only hide out of combat: hiding them in combat would leave invisible buttons under the mouse. Until it ends they stay
+-- and carry the controller's buttons. Showing doesn't wait: the bars are back at once with their key binds and
+-- cooldowns, and take clicks again when combat ends (the fade engine sees to that).
+local function Sync()
+    local hide = WantsBarsHidden()
+    if hide ~= barsHidden and not (hide and InCombatLockdown()) then
+        barsHidden = hide
+        local fade = addon.VisibilityFade
+        if fade and fade.SetForcedHidden then
+            for _, key in ipairs(HIDDEN_KEYS) do fade.SetForcedHidden(key, hide) end
+        end
+    end
+
+    local showOverlays = layout == "controller" and not barsHidden
+    if showOverlays == overlaysShown then return end
+    overlaysShown = showOverlays
     local api = Api()
     if api then
-        api.SetBarsShown(kind == "controller")
-        if kind == "controller" then EnsureOverlays(api) end
+        -- The controller's cross shows whenever the bars don't carry its buttons.
+        api.SetBarsShown(showOverlays)
+        if showOverlays then EnsureOverlays(api) end
     end
     paintedFamily, paintedLayer = nil, nil
     for button, overlay in pairs(overlays) do
-        if kind == "controller" then
+        if showOverlays then
             -- The bars re-level their buttons now and then (editor mode, the gryphons), so check each time.
             overlay:SetFrameLevel(button:GetFrameLevel() + 3)
             overlay:Show()
@@ -189,6 +223,12 @@ local function SetLayout(kind)
         end
     end
     ApplyHotkeys()
+end
+
+local function SetLayout(kind)
+    if layout == kind then return end
+    layout = kind
+    Sync()
     UpdateSwapButton()
 end
 
@@ -272,10 +312,15 @@ local function CreateSwapButton()
         GameTooltip:SetOwner(self, "ANCHOR_TOP")
         if layout == "controller" then
             GameTooltip:SetText(L["Keyboard layout"])
-            GameTooltip:AddLine(L["Back to the keyboard's key labels. Pressing a controller button switches again."], 1, 1, 1, true)
+            GameTooltip:AddLine(barsHidden
+                and L["Brings the action bars back. Pressing a controller button switches again."]
+                or L["Back to the keyboard's key labels. Pressing a controller button switches again."], 1, 1, 1, true)
         else
             GameTooltip:SetText(L["Controller layout"])
-            GameTooltip:AddLine(L["Shows the controller's buttons on the action bars."], 1, 1, 1, true)
+            local settings = Settings()
+            GameTooltip:AddLine((settings and settings.hide_bars == false)
+                and L["Shows the controller's buttons on the action bars."]
+                or L["Hides the action bars and shows the controller's cross of abilities."], 1, 1, 1, true)
         end
         GameTooltip:Show()
     end)
@@ -310,6 +355,8 @@ local function OnUpdate()
     local api = Api()
     if not api or not Enabled() then
         SetLayout("keyboard")
+        -- Catches up anything that waited for combat to end.
+        Sync()
         if swap then swap:Hide() end
         return
     end
@@ -322,6 +369,7 @@ local function OnUpdate()
     end
     wasActive = active
     if not connected then SetLayout("keyboard") end
+    Sync()
 
     CreateSwapButton()
     if connected and not (addon.EditorMode and addon.EditorMode:IsActive()) then
@@ -330,7 +378,7 @@ local function OnUpdate()
         swap:Hide()
     end
 
-    if layout == "controller" then
+    if overlaysShown then
         if family ~= paintedFamily then
             paintedFamily = family
             PaintGlyphs(api)
@@ -369,8 +417,14 @@ end
 addon.ResetControllerSwapPosition = ResetPosition
 
 -- C_Controller appears after addons load, so start polling once in the world, whatever the registry does first.
+-- The end of combat catches up the bars, also when polling stopped in combat.
 driver:RegisterEvent("PLAYER_ENTERING_WORLD")
-driver:SetScript("OnEvent", function(self)
+driver:RegisterEvent("PLAYER_REGEN_ENABLED")
+driver:SetScript("OnEvent", function(self, event)
+    if event == "PLAYER_REGEN_ENABLED" then
+        Sync()
+        return
+    end
     self:UnregisterEvent("PLAYER_ENTERING_WORLD")
     if Enabled() then addon.ApplyControllerSystem() end
 end)
@@ -378,8 +432,11 @@ end)
 -- For the checks in tools/controller_layout_test.lua.
 addon._controllerLayout = {
     OnUpdate = OnUpdate,
+    OnEvent = function(event) driver:GetScript("OnEvent")(driver, event) end,
     SetLayout = SetLayout,
     Layout = function() return layout end,
+    BarsHidden = function() return barsHidden end,
+    OverlaysShown = function() return overlaysShown end,
     Overlays = overlays,
     Swap = function() return swap end,
 }

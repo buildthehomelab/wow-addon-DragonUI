@@ -1837,7 +1837,13 @@ L["Your rate is %s."] = true
 
 -- Controller layout
 L["Controller Layout"] = true
-L["With the controller DLL installed, pressing a controller button shows its buttons on the main and bottom bars, and the abilities of the triggers you hold light up. A Keyboard button by the bars switches back."] = true
+L["With the controller DLL installed, pressing a controller button switches to the controller layout: the action bars, micro menu and bags make way for the controller's cross of abilities, as on WoW Forever. A Keyboard button by the bars switches back."] = true
+L["Hide the Action Bars"] = true
+L["Cross Style"] = true
+L["How the controller shows its abilities while the bars are hidden. WoW Forever: the buttons for the triggers you hold. Cross hotbar: every trigger's set at once, the one you hold big and bright."] = true
+L["WoW Forever"] = true
+L["Cross hotbar"] = true
+L["Off: the bars stay and show the controller's buttons on the main and bottom bars, and the abilities of the triggers you hold light up."] = true
 L["No controller support found in this game client."] = true
 L["Enable Controller Layout"] = true
 L["Switch When a Controller Button Is Pressed"] = true

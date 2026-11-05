@@ -1308,3 +1308,5 @@ L["Controller"] = true
 L["Keyboard layout"] = true
 L["Controller layout"] = true
 L["Back to the keyboard's key labels. Pressing a controller button switches again."] = true
+L["Brings the action bars back. Pressing a controller button switches again."] = true
+L["Hides the action bars and shows the controller's cross of abilities."] = true

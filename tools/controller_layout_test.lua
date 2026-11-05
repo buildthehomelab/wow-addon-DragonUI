@@ -30,6 +30,7 @@ function Widget:SetAlpha(a) self.alpha = a end
 function Widget:GetAlpha() return self.alpha end
 function Widget:SetScript(name, fn) self.scripts[name] = fn end
 function Widget:HookScript(name, fn) self.scripts[name] = fn end
+function Widget:GetScript(name) return self.scripts[name] end
 function Widget:GetFrameLevel() return self.level end
 function Widget:SetFrameLevel(level) self.level = level end
 function Widget:GetName() return self.name end
@@ -100,8 +101,8 @@ local fakeApi = {
     SetBarsShown = function(shown) pad.bars[#pad.bars + 1] = shown end,
 }
 
--- DragonUI's side.
-local config = { enabled = true, auto = true }
+-- DragonUI's side. The first part keeps the bars (hide_bars off); the hidden bars, the default, come at the end.
+local config = { enabled = true, auto = true, hide_bars = false }
 local hotkeyRefreshes = 0
 local addon = {
     L = setmetatable({}, { __index = function(_, key) return key end }),
@@ -114,6 +115,19 @@ function addon.CreateUIFrame() return new("Frame") end
 function addon:RegisterEditableFrame(info) addon.editable = info end
 function addon.GetAnchorOffset() return 10, 20 end
 function addon.RefreshAllHotkeys() hotkeyRefreshes = hotkeyRefreshes + 1 end
+local combat = false
+function InCombatLockdown() return combat end
+local forced = {}
+addon.VisibilityFade = { SetForcedHidden = function(key, hidden) forced[key] = hidden and true or nil end }
+local editorActive = false
+addon.EditorMode = { IsActive = function() return editorActive end }
+local HIDDEN = { "main", "bottom_left", "bottom_right", "right", "left", "extrabar1", "micro", "bag" }
+local function allForced(value)
+    for _, key in ipairs(HIDDEN) do
+        if forced[key] ~= value then return false end
+    end
+    return true
+end
 
 assert(loadfile("DragonUI/modules/controller.lua"))("DragonUI", addon)
 local T = addon._controllerLayout
@@ -225,6 +239,88 @@ frame()
 check(T.Layout() == "keyboard" and pad.bars[#pad.bars] == false,
     "with Bartender4 running the bars, the controller keeps its own cross")
 addon.compatibility = nil
+
+check(allForced(nil), "keeping the bars never hides them")
+
+-- ---- hiding the bars, the default ----------------------------------------------------------------------------
+config.hide_bars = nil
+pad.connected, pad.active = true, false
+frame()
+local crossCalls = #pad.bars
+pad.active = true
+frame()
+check(T.Layout() == "controller" and T.BarsHidden(), "a press hides the bars by default")
+check(allForced(true), "action bars, micro menu and bags all hidden")
+check(forced.petbar == nil and forced.stancebar == nil and forced.xprepbar == nil, "pet, stance and XP bars stay")
+check(not T.OverlaysShown() and not main1:IsShown(), "no button pictures on bars nobody sees")
+check(#pad.bars == crossCalls, "the controller keeps its own cross")
+check(hotkey("ActionButton1").alpha == 1 and not addon.ControllerOwnsHotkey(buttons.ActionButton1),
+    "key text left alone under the hidden bars")
+check(T.Swap():IsShown() and T.Swap().text == "Keyboard", "the swap button still offers the keyboard")
+
+editorActive = true
+frame()
+check(not T.BarsHidden() and allForced(nil), "editor mode brings the bars back to be moved")
+check(T.OverlaysShown() and pad.bars[#pad.bars] == true, "showing the controller's buttons meanwhile")
+editorActive = false
+frame()
+check(T.BarsHidden() and allForced(true) and pad.bars[#pad.bars] == false, "and hides them again after")
+
+config.hide_bars = false
+frame()
+check(not T.BarsHidden() and allForced(nil) and T.OverlaysShown(), "turning the setting off brings the bars at once")
+check(pad.bars[#pad.bars] == true and hotkey("ActionButton1").alpha == 0, "with the controller's buttons on them")
+config.hide_bars = true
+frame()
+check(T.BarsHidden() and not T.OverlaysShown() and pad.bars[#pad.bars] == false, "and back on hides them again")
+check(hotkey("ActionButton1").alpha == 1, "key text restored under them")
+
+local rests = pad.rests
+T.Swap():Click()
+check(T.Layout() == "keyboard" and not T.BarsHidden() and allForced(nil), "the swap button brings the bars back")
+check(pad.rests == rests + 1, "and rests the controller")
+frame()
+pad.active = true
+frame()
+check(T.BarsHidden(), "the next press hides them again")
+config.enabled = false
+frame()
+check(T.Layout() == "keyboard" and allForced(nil), "turning the module off brings the bars back")
+config.enabled = true
+
+-- ---- combat: the bars wait, the controller's buttons don't ----------------------------------------------------
+pad.connected, pad.active = true, false
+frame()
+combat = true
+pad.active = true
+frame()
+check(T.Layout() == "controller" and not T.BarsHidden() and allForced(nil), "in combat the bars stay where they are")
+check(T.OverlaysShown() and pad.bars[#pad.bars] == true, "and carry the controller's buttons meanwhile")
+combat = false
+frame()
+check(T.BarsHidden() and allForced(true) and not T.OverlaysShown() and pad.bars[#pad.bars] == false,
+    "after combat they make way for the cross")
+combat = true
+T.Swap():Click()
+frame()
+check(T.Layout() == "keyboard" and not T.BarsHidden() and allForced(nil), "swapping back in combat shows the bars at once")
+check(not T.OverlaysShown() and hotkey("ActionButton1").alpha == 1, "with their own key text")
+combat = false
+frame()
+
+-- Polling stops with the module, so a hide still waiting when it's turned off is dropped at the end of combat.
+pad.active = false
+frame()
+combat = true
+pad.active = true
+frame()
+check(not T.BarsHidden(), "a hide waits in combat")
+config.enabled = false
+addon.RestoreControllerSystem()
+combat = false
+T.OnEvent("PLAYER_REGEN_ENABLED")
+check(not T.BarsHidden() and allForced(nil) and T.Layout() == "keyboard", "and is dropped with the module off")
+config.enabled = true
 
 print(checks .. " checks, " .. failures .. " failures")
 os.exit(failures == 0 and 0 or 1)

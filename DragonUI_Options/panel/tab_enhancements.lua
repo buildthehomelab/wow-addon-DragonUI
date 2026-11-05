@@ -161,7 +161,7 @@ local function BuildEnhancementsTab(scroll)
     C:AddSpacer(scroll)
     local controllerSection = C:AddSection(scroll, LO["Controller Layout"])
 
-    C:AddDescription(controllerSection, LO["With the controller DLL installed, pressing a controller button shows its buttons on the main and bottom bars, and the abilities of the triggers you hold light up. A Keyboard button by the bars switches back."])
+    C:AddDescription(controllerSection, LO["With the controller DLL installed, pressing a controller button switches to the controller layout: the action bars, micro menu and bags make way for the controller's cross of abilities, as on WoW Forever. A Keyboard button by the bars switches back."])
     if not _G.C_Controller then
         C:AddLabel(controllerSection, "|cff888888" .. LO["No controller support found in this game client."] .. "|r")
     end
@@ -186,6 +186,36 @@ local function BuildEnhancementsTab(scroll)
         disabled = function() return not IsEnabled("controller") end,
         requiresReload = false,
     })
+
+    -- Read every frame by controller.lua, so it takes effect at once.
+    C:AddToggle(controllerSection, {
+        label = LO["Hide the Action Bars"],
+        desc = LO["Off: the bars stay and show the controller's buttons on the main and bottom bars, and the abilities of the triggers you hold light up."],
+        getFunc = function() return GetModuleField("controller", "hide_bars") ~= false end,
+        setFunc = function(val)
+            EnsureModuleTable("controller").hide_bars = val
+        end,
+        disabled = function() return not IsEnabled("controller") end,
+        requiresReload = false,
+    })
+
+    -- The cross's style lives in the controller DLL (saved in WTF\Controller.txt), not in DragonUI's profile. Older
+    -- DLLs have no styles, so the choice only shows with one that does.
+    local controller = _G.C_Controller
+    if controller and controller.GetStyle and controller.SetStyle then
+        C:AddDescription(controllerSection, LO["How the controller shows its abilities while the bars are hidden. WoW Forever: the buttons for the triggers you hold. Cross hotbar: every trigger's set at once, the one you hold big and bright."])
+        C:AddDropdown(controllerSection, {
+            label = LO["Cross Style"],
+            values = {
+                wow = LO["WoW Forever"],
+                xiv = LO["Cross hotbar"],
+            },
+            getFunc = function() return controller.GetStyle() end,
+            setFunc = function(val) controller.SetStyle(val) end,
+            disabled = function() return not IsEnabled("controller") end,
+            width = 200,
+        })
+    end
 
     -- ====================================================================
     -- KEY PRESS (fire abilities on key down)

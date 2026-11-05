@@ -596,6 +596,7 @@ local function boot()
 
     buildChrome()
     installHooks()
+    if WM.ApplyPatchedZones then WM.ApplyPatchedZones() end
     if WM.BuildNavBar then WM.BuildNavBar() end
     if WM.BuildPins then WM.BuildPins() end
     if WM.BuildQuestLog then WM.BuildQuestLog() end

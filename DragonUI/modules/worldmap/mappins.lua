@@ -426,10 +426,11 @@ function WM.RefreshMapPins()
         if config.questGivers ~= false and area > 0 and WM.OnTerrainFloor() then
             local trivial, repeatable = config.trivialQuests == true, config.repeatableQuests ~= false
             local givers = {}
+            local shift = WM.QuestGiverShift and WM.QuestGiverShift[area] or 0
             for _, giver in ipairs(WM.QuestGivers(area) or EMPTY) do
                 local shown = questsShown(giver, trivial, repeatable)
                 if #shown > 0 then
-                    givers[#givers + 1] = { px = giver.x * width, py = giver.y * height, name = giver.name, shown = shown }
+                    givers[#givers + 1] = { px = (giver.x + shift) * width, py = giver.y * height, name = giver.name, shown = shown }
                 end
             end
             if config.groupQuestGivers ~= false then

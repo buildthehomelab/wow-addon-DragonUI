@@ -11,7 +11,7 @@ WM.ZoneLevels = {
     ["EversongWoods"] = { 1, 10 }, ["AzuremystIsle"] = { 1, 10 },
     ["Westfall"] = { 10, 20 }, ["LochModan"] = { 10, 20 }, ["Silverpine"] = { 10, 20 },
     ["Darkshore"] = { 10, 20 }, ["Ghostlands"] = { 10, 20 }, ["BloodmystIsle"] = { 10, 20 },
-    ["Barrens"] = { 10, 25 }, ["Redridge"] = { 15, 25 }, ["StonetalonMountains"] = { 15, 27 },
+    ["Barrens"] = { 10, 25 }, ["Redridge"] = { 15, 25 }, ["Riverlands"] = { 35, 45 }, ["StonetalonMountains"] = { 15, 27 },
     ["Ashenvale"] = { 18, 30 }, ["Duskwood"] = { 18, 30 }, ["Hilsbrad"] = { 20, 30 },
     ["Wetlands"] = { 20, 30 }, ["ThousandNeedles"] = { 25, 35 },
     ["Alterac"] = { 30, 40 }, ["Arathi"] = { 30, 40 }, ["Desolace"] = { 30, 40 },

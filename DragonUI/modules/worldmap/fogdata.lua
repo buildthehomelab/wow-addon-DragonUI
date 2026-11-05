@@ -2,6 +2,7 @@
 -- GENERATED from the client's WorldMapOverlay.dbc and WorldMapArea.dbc. Do not edit.
 -- Game data (c) Blizzard Entertainment; not covered by DragonUI's MIT license.
 -- Packed value = width + height * 2^10 + offsetX * 2^20 + offsetY * 2^30.
+-- Riverlands is by hand, from WoW Forever's WorldMapOverlay, for clients whose patch adds that zone: keep it if this is regenerated.
 
 local addon = select(2, ...)
 
@@ -664,6 +665,21 @@ addon.WorldMap.FogData = {
     ["TheHeap"] = 488803357952,
     ["TheScrapField"] = 280620171520,
     ["TheStormspire"] = 144194142464,
+  },
+  ["Riverlands"] = {
+    ["BOLDEROK"] = 517246229,
+    ["BRISTLEHILLS"] = 343623907710,
+    ["FARHOLDEKEEP"] = 459058431217,
+    ["KROLDOKSTRONGHOLD"] = 324330830,
+    ["MEADOWSBROOK"] = 437319374162,
+    ["POWDERFUSEPORT"] = 286271002885,
+    ["ROGMAR"] = 231383179477,
+    ["SUNNYGLADE"] = 231243794662,
+    ["TERRALSWATCH"] = 354858232028,
+    ["TURNERSLOGGINGCAMP"] = 312765270198,
+    ["TWILIGHTSSHROUD"] = 105358092631,
+    ["WHEELERSGRANGE"] = 443921140964,
+    ["WINDSTEAD"] = 56498649411,
   },
   ["Redridge"] = {
     ["ALTHERSMILL"] = 138931353835,

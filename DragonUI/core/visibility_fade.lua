@@ -12,6 +12,8 @@ local VF = addon.VisibilityFade
 
 local registry = {}
 local hoverTimers = {}
+-- Keys another module hides for now, whatever their own settings say (the controller layout hides the action bars).
+local forcedHidden = {}
 
 local function Clamp01(value)
     value = tonumber(value) or 0
@@ -21,7 +23,16 @@ local function Clamp01(value)
 end
 
 local function GetConfig(entry)
-    return entry.dbTable and entry.dbTable()
+    local cfg = entry.dbTable and entry.dbTable()
+    if cfg and forcedHidden[entry.key] then
+        local copy = {}
+        for field, value in pairs(cfg) do copy[field] = value end
+        copy.always_hidden = true
+        -- Fully gone, even where the bar's own "hidden" alpha leaves it faintly there.
+        copy.visibility_hidden_alpha = 0
+        return copy
+    end
+    return cfg
 end
 
 local function EvaluateShouldShow(cfg, state)
@@ -255,7 +266,7 @@ function VF.Register(key, frame, opts)
 
     local entry = registry[key]
     if not entry then
-        entry = { state = { hovered = false, inCombat = false } }
+        entry = { key = key, state = { hovered = false, inCombat = false } }
         registry[key] = entry
     end
 
@@ -327,6 +338,20 @@ function VF.Unregister(key)
     if entry.poller then entry.poller:SetScript("OnUpdate", nil) end
     ApplyAlpha(entry, 1)
     registry[key] = nil
+end
+
+-- Hides a key as if always_hidden were set, or hands it back to its own settings. Alpha and click-through only, like
+-- the rest of the engine, so it works in combat, but secure buttons only stop or start taking clicks once combat ends.
+-- A key that isn't registered yet picks this up when it is.
+function VF.SetForcedHidden(key, hidden)
+    hidden = hidden and true or nil
+    if forcedHidden[key] == hidden then return end
+    forcedHidden[key] = hidden
+    VF.Update(key)
+end
+
+function VF.IsForcedHidden(key)
+    return forcedHidden[key] == true
 end
 
 function VF.RefreshAll()

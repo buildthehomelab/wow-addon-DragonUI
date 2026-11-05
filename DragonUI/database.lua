@@ -1419,6 +1419,7 @@ local defaults = {
             controller = {
                 enabled = true, -- Controller buttons on the action bars (needs the controller DLL; nothing shows without it)
                 auto = true, -- Switch to the controller layout when a controller button is pressed
+                hide_bars = true, -- Controller layout hides the action bars, micro menu and bags for the controller's cross
             },
             hp_low_alert = {
                 enabled = true, -- Screen flash and sound when HP drops below threshold

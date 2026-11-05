@@ -1416,6 +1416,10 @@ local defaults = {
                 fadeWhenMoving = false, -- Dim the map while you move with the cursor off it
                 moveAlpha = 0.4, -- Alpha the map fades to while moving
             },
+            controller = {
+                enabled = true, -- Controller buttons on the action bars (needs the controller DLL; nothing shows without it)
+                auto = true, -- Switch to the controller layout when a controller button is pressed
+            },
             hp_low_alert = {
                 enabled = true, -- Screen flash and sound when HP drops below threshold
                 threshold = 30, -- HP percentage threshold to trigger warning

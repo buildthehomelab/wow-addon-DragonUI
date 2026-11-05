@@ -325,7 +325,13 @@ local function styleHotkey(button)
 	
 	local hotkey = _G[buttonName..'HotKey']
 	if not hotkey then return end
-	
+
+    -- The controller layout (controller.lua) shows the controller's button in this corner instead.
+    if addon.ControllerOwnsHotkey and addon.ControllerOwnsHotkey(button) then
+        hotkey:SetAlpha(0)
+        return
+    end
+
 	local db = GetButtonsConfig()
 	if not db or not db.hotkey then return end
 

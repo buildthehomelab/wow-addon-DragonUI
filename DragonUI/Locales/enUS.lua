@@ -1299,3 +1299,12 @@ L["More settings..."] = true
 -- Loot triage (bags_triage.lua)
 L["Loot Triage will never suggest deleting %s."] = true
 L["Loot Triage may suggest deleting %s again."] = true
+
+-- Controller layout (controller.lua)
+L["Controller Layout"] = true
+L["Shows the controller's buttons on the action bars while a controller is in use."] = true
+L["Keyboard"] = true
+L["Controller"] = true
+L["Keyboard layout"] = true
+L["Controller layout"] = true
+L["Back to the keyboard's key labels. Pressing a controller button switches again."] = true
